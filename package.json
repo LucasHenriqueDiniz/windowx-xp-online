@@ -6,7 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "firebase-update": "firebase deploy --only database",
+    "firebase-deploy": "firebase deploy --only hosting"
   },
   "dependencies": {
     "@react-hook/mouse-position": "^4.1.3",
