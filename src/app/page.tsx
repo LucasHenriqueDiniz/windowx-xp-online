@@ -1,12 +1,22 @@
-import FirebaseTest from "@/components/Test/FirebaseTest";
+import { DesktopProvider } from "@/context/DesktopContext";
+import Desktop from "@/components/Desktop/Desktop";
+import Taskbar from "@/components/Taskbar/Taskbar";
+import DatabaseInitializer from "@/components/DatabaseInitializer";
+import CursorOverlay from "@/components/CursorOverlay";
+import NameDialog from "@/components/NameDialog";
 
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <h1 className="text-4xl font-bold text-center sm:text-left">Welcome to Windows XP</h1>
-        <FirebaseTest />
-      </main>
-    </div>
+    <DesktopProvider>
+      <div className="flex flex-col h-screen">
+        <DatabaseInitializer />
+        <div className="flex-grow relative">
+          <Desktop />
+        </div>
+        <Taskbar />
+        <CursorOverlay />
+        <NameDialog />
+      </div>
+    </DesktopProvider>
   );
 }
