@@ -97,6 +97,12 @@ export default function SystemRestore({ id, isActive, isMaximized, isMinimized, 
   // Reset the database
   const resetDatabase = async () => {
     try {
+      // Check if database is defined first
+      if (!database) {
+        console.error("Firebase database is not initialized");
+        throw new Error("Firebase database is not initialized");
+      }
+
       // Reset desktop settings
       await set(ref(database, "desktop/iconIds"), defaultIcons);
       await set(ref(database, "desktop/iconSize"), "medium");
