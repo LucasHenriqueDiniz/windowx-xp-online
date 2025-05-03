@@ -6,8 +6,15 @@ import { ref, set, onValue } from "firebase/database";
 export default function FirebaseTest() {
   const [message, setMessage] = useState<string>("");
   const [inputValue, setInputValue] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Verificar se o database está definido
+    if (!database) {
+      setError("Firebase não foi inicializado. Verifique suas variáveis de ambiente.");
+      return () => {};
+    }
+
     const messageRef = ref(database, "test/message");
 
     // Listen for changes
@@ -23,6 +30,11 @@ export default function FirebaseTest() {
   }, []);
 
   const updateMessage = () => {
+    if (!database) {
+      setError("Firebase não foi inicializado. Verifique suas variáveis de ambiente.");
+      return;
+    }
+
     const messageRef = ref(database, "test/message");
     set(messageRef, inputValue);
   };
@@ -30,12 +42,21 @@ export default function FirebaseTest() {
   return (
     <div className="p-4 border rounded-md bg-white shadow-md text-gray-800">
       <h2 className="text-xl font-bold mb-4">Firebase Realtime Test</h2>
-      <div className="mb-4">
-        <p>
-          Current message: <span className="font-semibold">{message || "No message yet"}</span>
-        </p>
-        <p className="text-gray-500">This message is fetched from Firebase Realtime Database.</p>
-      </div>
+
+      {error ? (
+        <div className="p-3 bg-red-100 text-red-700 rounded mb-4">
+          <p className="font-semibold">Erro:</p>
+          <p>{error}</p>
+        </div>
+      ) : (
+        <div className="mb-4">
+          <p>
+            Current message: <span className="font-semibold">{message || "No message yet"}</span>
+          </p>
+          <p className="text-gray-500">This message is fetched from Firebase Realtime Database.</p>
+        </div>
+      )}
+
       <div className="flex gap-2">
         <input
           type="text"
@@ -43,10 +64,12 @@ export default function FirebaseTest() {
           onChange={(e) => setInputValue(e.target.value)}
           className="border p-2 rounded"
           placeholder="Enter new message"
+          disabled={!!error}
         />
         <button
           onClick={updateMessage}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
+          className={`px-4 py-2 rounded ${error ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 text-white"}`}
+          disabled={!!error}
         >
           Update
         </button>
