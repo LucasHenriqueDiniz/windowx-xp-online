@@ -18,7 +18,7 @@ export default function Taskbar({ className = "" }: TaskbarProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isStartMenuOpen, setIsStartMenuOpen] = useState(false);
   const { programs, minimizeAllPrograms } = useDesktop();
-  const { launchProgram, activateProgram, terminateProgram } = useProgramManager();
+  const { launchProgram, activateProgram } = useProgramManager();
   const [taskbarHeight, setTaskbarHeight] = useState(40); // Default taskbar height
   const [isTaskbarLocked, setIsTaskbarLocked] = useState(true); // Default locked
   const [isResizing, setIsResizing] = useState(false);
@@ -29,6 +29,7 @@ export default function Taskbar({ className = "" }: TaskbarProps) {
   });
 
   // Global start menu state (to sync across users)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [globalStartMenuOpen, setGlobalStartMenuOpen] = useState(false);
   const taskbarRef = useRef<HTMLDivElement>(null);
 

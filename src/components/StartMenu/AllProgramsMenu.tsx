@@ -97,7 +97,7 @@ export default function AllProgramsMenu({ onSelectProgram, position }: AllProgra
   };
 
   const renderItems = (items: (string | ProgramFolder)[]) => {
-    return items.map((item, index) => {
+    return items.map((item) => {
       if (typeof item === "string") {
         // It's a program ID
         const program = getProgramInfo(item);

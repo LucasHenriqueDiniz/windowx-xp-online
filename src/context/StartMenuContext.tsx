@@ -30,6 +30,7 @@ export const useStartMenu = () => useContext(StartMenuContext);
 export const StartMenuProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [pinnedPrograms, setPinnedPrograms] = useState<string[]>(defaultPinnedPrograms);
   const [recentPrograms, setRecentPrograms] = useState<string[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [allProgramsStructure, setAllProgramsStructure] = useState<ProgramsMenuStructure>(defaultProgramsMenuStructure);
 
   // Load user preferences from localStorage on component mount
