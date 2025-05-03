@@ -311,7 +311,7 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
       if (programToClose) {
         // Save the program type for potential reopening
         const programType = programToClose.type;
-        const globalId = programToClose.globalId;
+        // const globalId = programToClose.globalId;
 
         // Get the remaining programs of this type
         const remainingPrograms = programs.filter((p) => p.type === programType && p.id !== programId);

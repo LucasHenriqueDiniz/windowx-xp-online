@@ -1,13 +1,13 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
-import { defaultIcons, useDesktop } from "@/context/DesktopContext";
-import { database } from "../../../lib/firebase";
+import { defaultIcons } from "@/context/DesktopContext";
 import { ref, set } from "firebase/database";
-import { DefaultWallpaper } from "../../../public/assets/wallpapers";
 import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
+import { database } from "../../../lib/firebase";
+import { systemSounds } from "../../../public/assets/audio";
 import * as Icons from "../../../public/assets/icons";
+import { DefaultWallpaper } from "../../../public/assets/wallpapers";
 import Window from "../Window/Window";
-import { systemSounds, uiSounds } from "../../../public/assets/audio";
 
 interface SystemRestoreProps {
   id: string;
@@ -17,10 +17,12 @@ interface SystemRestoreProps {
   zIndex: number;
   position?: { x: number; y: number };
   size?: { width: number; height: number };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   props?: Record<string, any>;
   onClose: () => void;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function SystemRestore({ id, isActive, isMaximized, isMinimized, zIndex, position, size, props, onClose }: SystemRestoreProps) {
   const [isConfirming, setIsConfirming] = useState(false);
   const [isShuttingDown, setIsShuttingDown] = useState(false);
@@ -28,7 +30,6 @@ export default function SystemRestore({ id, isActive, isMaximized, isMinimized, 
   const [progress, setProgress] = useState(0);
   const progressRef = useRef<HTMLDivElement>(null);
   const [shutdownMessage, setShutdownMessage] = useState("Preparing to restore system...");
-  const { closeProgram } = useDesktop();
   const shutdownAudioRef = useRef<HTMLAudioElement | null>(null);
   const startupAudioRef = useRef<HTMLAudioElement | null>(null);
 

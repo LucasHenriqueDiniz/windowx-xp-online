@@ -17,6 +17,7 @@ interface WindowProps extends Omit<WindowPropertiesProps, "props"> {
   showMinimize?: boolean;
   showMaximize?: boolean;
   resizable?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   props?: Record<string, any>;
 }
 
@@ -39,6 +40,7 @@ export default function Window({
   showMinimize = true,
   showMaximize = true,
   resizable = true,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   props,
 }: WindowProps) {
   const { closeProgram, focusProgram, minimizeProgram, maximizeProgram, moveProgram, resizeProgram } = useDesktop();
