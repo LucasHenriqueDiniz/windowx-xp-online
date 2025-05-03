@@ -14,7 +14,7 @@ const firebaseConfig = {
 
 // Initialize Firebase only on the client side or if not already initialized
 let app;
-let database: Database | undefined = undefined;
+let database: Database;
 
 // Verifica se está no navegador e se as variáveis essenciais estão definidas
 const isBrowser = typeof window !== "undefined";
