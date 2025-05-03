@@ -60,7 +60,79 @@ body {
 /* Windows XP Scrollbars */
 * {
   scrollbar-width: auto;
-  scrollbar-color: var(--xp-scrollbar-face) var(--xp-scrollbar-track);
+  scrollbar-color: #e7e5de #f1f0e9;
+}
+
+/* Hide scrollbars but keep functionality */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Chrome, Edge, and Safari */
+*::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+  background-color: #f0f0f0;
+}
+
+*::-webkit-scrollbar-track {
+  background-color: #f0f0f0;
+  border: 1px solid #d4d0c8;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(to right, #e3e3e3, #c0c0c0, #e3e3e3);
+  border: 1px solid #b5b5b5;
+  border-radius: 2px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to right, #e3e3e3, #a0a0a0, #e3e3e3);
+}
+
+*::-webkit-scrollbar-button {
+  display: block;
+  height: 16px;
+  width: 16px;
+  background-color: #d4d0c8;
+  border: 1px solid #b5b5b5;
+  box-shadow: inset 1px 1px 1px white, inset -1px -1px 1px #7f7f7f;
+  color: black;
+  text-align: center;
+  line-height: 16px;
+}
+
+*::-webkit-scrollbar-button:vertical:start:decrement {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M8 5L12 10H4L8 5Z' fill='%23000000'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+
+*::-webkit-scrollbar-button:vertical:end:increment {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L12 6H4L8 11Z' fill='%23000000'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+
+*::-webkit-scrollbar-button:horizontal:start:decrement {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M5 8L10 4V12L5 8Z' fill='%23000000'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+
+*::-webkit-scrollbar-button:horizontal:end:increment {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M11 8L6 4V12L11 8Z' fill='%23000000'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+
+*::-webkit-scrollbar-corner {
+  background-color: #d4d0c8;
 }
 
 *::-webkit-scrollbar {
@@ -69,48 +141,57 @@ body {
 }
 
 *::-webkit-scrollbar-track {
-  background: var(--xp-scrollbar-track);
-  border: 1px solid var(--xp-scrollbar-shadow);
+  background: #f1f0e9;
+  border: 1px solid #aca899;
 }
 
 *::-webkit-scrollbar-thumb {
-  background-color: var(--xp-scrollbar-face);
-  border: 1px solid var(--xp-scrollbar-shadow);
-  border-right-color: var(--xp-scrollbar-highlight);
-  border-bottom-color: var(--xp-scrollbar-highlight);
+  background: linear-gradient(to right, #f5f4ea 0%, #e8e6d6 50%, #f5f4ea 100%);
+  border-left: 1px solid #aca899;
+  border-right: 1px solid #aca899;
+  border-top: 1px solid #ffffff;
+  border-bottom: 1px solid #aca899;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to right, #f1f0e5 0%, #e0ded0 50%, #f1f0e5 100%);
 }
 
 *::-webkit-scrollbar-button:single-button {
-  background-color: var(--xp-scrollbar-face);
-  border: 1px solid var(--xp-scrollbar-shadow);
-  border-right-color: var(--xp-scrollbar-highlight);
-  border-bottom-color: var(--xp-scrollbar-highlight);
+  background-color: #f5f4ea;
+  display: block;
+  border: 1px solid #aca899;
+  border-radius: 0;
   height: 16px;
   width: 16px;
 }
 
+/* Up Arrow */
 *::-webkit-scrollbar-button:single-button:vertical:decrement {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 100 100'><path fill='black' d='M50 25 L75 65 L25 65 Z'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='none' stroke='%23000' d='M1,5 L5,1 L9,5' /></svg>");
   background-repeat: no-repeat;
-  background-position: center;
+  background-position: center center;
 }
 
+/* Down Arrow */
 *::-webkit-scrollbar-button:single-button:vertical:increment {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 100 100'><path fill='black' d='M25 35 L75 35 L50 75 Z'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='none' stroke='%23000' d='M1,1 L5,5 L9,1' /></svg>");
   background-repeat: no-repeat;
-  background-position: center;
+  background-position: center center;
 }
 
+/* Left Arrow */
 *::-webkit-scrollbar-button:single-button:horizontal:decrement {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 100 100'><path fill='black' d='M65 25 L65 75 L25 50 Z'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='6' height='10' viewBox='0 0 6 10'><path fill='none' stroke='%23000' d='M5,1 L1,5 L5,9' /></svg>");
   background-repeat: no-repeat;
-  background-position: center;
+  background-position: center center;
 }
 
+/* Right Arrow */
 *::-webkit-scrollbar-button:single-button:horizontal:increment {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 100 100'><path fill='black' d='M35 25 L35 75 L75 50 Z'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='6' height='10' viewBox='0 0 6 10'><path fill='none' stroke='%23000' d='M1,1 L5,5 L1,9' /></svg>");
   background-repeat: no-repeat;
-  background-position: center;
+  background-position: center center;
 }
 
 *::-webkit-scrollbar-corner {
@@ -210,6 +291,46 @@ body {
   outline-offset: -4px;
 }
 
+.xp-button {
+  background: linear-gradient(to bottom, #ffffff 0%, #ece9d8 100%);
+  border: 1px solid #003c74;
+  border-radius: 3px;
+  box-shadow: inset 1px 1px 0 white, inset -1px -1px 0 #bdbcbc;
+  color: #000000;
+  cursor: pointer;
+  font-family: var(--font-windows-xp);
+  font-size: 11px;
+  margin: 0 2px;
+  padding: 2px 10px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  min-width: 75px;
+}
+
+.xp-button:hover {
+  background: linear-gradient(to bottom, #ffffff 0%, #f0f0f0 100%);
+}
+
+.xp-button:active {
+  background: linear-gradient(to bottom, #e5e5e5 0%, #f0f0f0 100%);
+  box-shadow: inset 1px 1px 2px #7f7f7f, inset -1px -1px 1px white;
+  border-color: #003c74;
+  transform: translateY(1px);
+}
+
+.xp-button:disabled {
+  background: #f0f0f0;
+  color: #a0a0a0;
+  border-color: #7f7f7f;
+  box-shadow: none;
+}
+
+.xp-button:focus {
+  outline: 1px dotted #000000;
+  outline-offset: -4px;
+}
+
 /* Windows XP Select and Input styles */
 select,
 input[type="text"],
@@ -235,6 +356,133 @@ select {
 select:focus,
 input:focus {
   outline: 1px dotted #000000;
+}
+
+select {
+  background: white;
+  border: 1px solid #7f9db9;
+  color: black;
+  font-family: var(--font-windows-xp);
+  font-size: 11px;
+  padding: 2px 4px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M4 6h8L8 12 4 6z' fill='%23000000'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 4px center;
+  padding-right: 20px;
+}
+
+select:focus {
+  border-color: #2b7dbc;
+  outline: 1px dotted #000000;
+}
+
+select:disabled {
+  background-color: #f0f0f0;
+  color: #7f7f7f;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="password"],
+textarea {
+  background-color: white;
+  border: 1px solid #7f9db9;
+  color: black;
+  font-family: var(--font-windows-xp);
+  font-size: 11px;
+  padding: 2px 4px;
+  margin: 2px 0;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus,
+textarea:focus {
+  border-color: #2b7dbc;
+  outline: none;
+}
+
+input[type="text"]:disabled,
+input[type="number"]:disabled,
+input[type="password"]:disabled,
+textarea:disabled {
+  background-color: #f0f0f0;
+  color: #7f7f7f;
+}
+
+/* Windows XP Checkbox Styles */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  background: white;
+  border: 1px solid #7f9db9;
+  position: relative;
+  vertical-align: middle;
+  margin: 0 4px;
+}
+
+input[type="checkbox"]:checked {
+  background: white;
+}
+
+input[type="checkbox"]:checked::before {
+  content: "";
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  top: 1px;
+  left: 1px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9' viewBox='0 0 9 9'%3E%3Cpath d='M1 5L3 7L8 1' stroke='black' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+
+input[type="checkbox"]:focus {
+  outline: 1px dotted #000000;
+}
+
+input[type="checkbox"]:disabled {
+  background-color: #f0f0f0;
+  border-color: #a0a0a0;
+}
+
+/* Windows XP Radio Styles */
+input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  background: white;
+  border: 1px solid #7f9db9;
+  border-radius: 50%;
+  position: relative;
+  vertical-align: middle;
+  margin: 0 4px;
+}
+
+input[type="radio"]:checked::before {
+  content: "";
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  top: 3px;
+  left: 3px;
+  background-color: #000000;
+  border-radius: 50%;
+}
+
+input[type="radio"]:focus {
+  outline: 1px dotted #000000;
+}
+
+input[type="radio"]:disabled {
+  background-color: #f0f0f0;
+  border-color: #a0a0a0;
 }
 
 /* XP Desktop specific styles */

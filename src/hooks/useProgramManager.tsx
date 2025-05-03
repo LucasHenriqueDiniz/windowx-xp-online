@@ -6,9 +6,6 @@ import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { database } from "../../lib/firebase";
 
-// Define supported programs
-export type ProgramType = "calculator" | "display-properties" | "notepad" | "explorer" | "browser" | "control-panel";
-
 export interface ProgramProps {
   id: string;
   iconId?: string;
@@ -89,7 +86,7 @@ export function useProgramManager() {
   }, [programs, openProgram, closeProgram, focusProgram, isListening]);
 
   // Open a program with proper props validation and Firebase sync
-  const launchProgram = (programType: ProgramType, props: Partial<ProgramProps> = {}) => {
+  const launchProgram = (programType: string, props: Partial<ProgramProps> = {}) => {
     // Generate a global program ID
     const globalProgramId = uuidv4();
 
@@ -153,17 +150,17 @@ export function useProgramManager() {
   };
 
   // Find a specific program by type
-  const findProgramByType = (programType: ProgramType) => {
+  const findProgramByType = (programType: string) => {
     return programs.find((program) => program.type === programType);
   };
 
   // Check if a program of a specific type is open
-  const isProgramRunning = (programType: ProgramType) => {
+  const isProgramRunning = (programType: string) => {
     return programs.some((program) => program.type === programType);
   };
 
   // Get all running instances of a specific program type
-  const getProgramInstances = (programType: ProgramType) => {
+  const getProgramInstances = (programType: string) => {
     return programs.filter((program) => program.type === programType);
   };
 
