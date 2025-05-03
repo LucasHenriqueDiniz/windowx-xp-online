@@ -39,6 +39,10 @@ export default function ErrorDialog({
       initialSize={{ width, height }}
       resizable={false}
       onClose={onClose}
+      isActive={true}
+      isMaximized={false}
+      isMinimized={false}
+      zIndex={10}
     >
       <div className="p-4 flex flex-col h-full">
         <div className="flex items-center flex-1 mb-4">
