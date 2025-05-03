@@ -1,22 +1,23 @@
 "use client";
 import { useState, useRef, useEffect, ReactNode } from "react";
 import { useDesktop } from "@/context/DesktopContext";
+import Image from "next/image";
+import { WindowPropertiesProps } from "@/types/window-properties";
 
-interface WindowProps {
-  id: string;
+// Estendendo a interface WindowPropertiesProps para incluir as propriedades adicionais específicas do componente Window
+interface WindowProps extends Omit<WindowPropertiesProps, "props"> {
   title: string;
   icon: string;
   children: ReactNode;
-  isActive?: boolean;
-  isMaximized?: boolean;
-  isMinimized?: boolean;
-  zIndex?: number;
   initialPosition?: { x: number; y: number };
   initialSize?: { width: number; height: number };
   minWidth?: number;
   minHeight?: number;
   onClose?: () => void;
+  showMinimize?: boolean;
+  showMaximize?: boolean;
   resizable?: boolean;
+  props?: Record<string, any>;
 }
 
 export default function Window({
@@ -30,19 +31,38 @@ export default function Window({
   zIndex = 10,
   initialPosition = { x: 100, y: 100 },
   initialSize = { width: 640, height: 480 },
+  position,
+  size,
   minWidth = 200,
   minHeight = 150,
   onClose,
+  showMinimize = true,
+  showMaximize = true,
   resizable = true,
+  props,
 }: WindowProps) {
   const { closeProgram, focusProgram, minimizeProgram, maximizeProgram, moveProgram, resizeProgram } = useDesktop();
-  const [position, setPosition] = useState(initialPosition);
-  const [size, setSize] = useState(initialSize);
+  const [windowPosition, setWindowPosition] = useState(position || initialPosition);
+  const [windowSize, setWindowSize] = useState(size || initialSize);
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [resizeDirection, setResizeDirection] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const windowRef = useRef<HTMLDivElement>(null);
+
+  // Atualiza a posição da janela se a prop position mudar
+  useEffect(() => {
+    if (position) {
+      setWindowPosition(position);
+    }
+  }, [position]);
+
+  // Atualiza o tamanho da janela se a prop size mudar
+  useEffect(() => {
+    if (size) {
+      setWindowSize(size);
+    }
+  }, [size]);
 
   const handleClose = () => {
     if (onClose) {
@@ -72,8 +92,8 @@ export default function Window({
 
     setIsDragging(true);
     setDragOffset({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
+      x: e.clientX - windowPosition.x,
+      y: e.clientY - windowPosition.y,
     });
   };
 
@@ -97,36 +117,36 @@ export default function Window({
         const newX = e.clientX - dragOffset.x;
         const newY = e.clientY - dragOffset.y;
 
-        setPosition({ x: newX, y: newY });
+        setWindowPosition({ x: newX, y: newY });
       } else if (isResizing && resizeDirection) {
         const dx = e.clientX - dragOffset.x;
         const dy = e.clientY - dragOffset.y;
-        let newWidth = size.width;
-        let newHeight = size.height;
-        let newX = position.x;
-        let newY = position.y;
+        let newWidth = windowSize.width;
+        let newHeight = windowSize.height;
+        let newX = windowPosition.x;
+        let newY = windowPosition.y;
 
         // Handle different resize directions
         if (resizeDirection.includes("e")) {
-          newWidth = Math.max(size.width + dx, minWidth);
+          newWidth = Math.max(windowSize.width + dx, minWidth);
         }
         if (resizeDirection.includes("w")) {
-          const widthChange = Math.min(dx, size.width - minWidth);
-          newWidth = Math.max(size.width - dx, minWidth);
-          newX = position.x + widthChange;
+          const widthChange = Math.min(dx, windowSize.width - minWidth);
+          newWidth = Math.max(windowSize.width - dx, minWidth);
+          newX = windowPosition.x + widthChange;
         }
         if (resizeDirection.includes("s")) {
-          newHeight = Math.max(size.height + dy, minHeight);
+          newHeight = Math.max(windowSize.height + dy, minHeight);
         }
         if (resizeDirection.includes("n")) {
-          const heightChange = Math.min(dy, size.height - minHeight);
-          newHeight = Math.max(size.height - dy, minHeight);
-          newY = position.y + heightChange;
+          const heightChange = Math.min(dy, windowSize.height - minHeight);
+          newHeight = Math.max(windowSize.height - dy, minHeight);
+          newY = windowPosition.y + heightChange;
         }
 
-        setSize({ width: newWidth, height: newHeight });
+        setWindowSize({ width: newWidth, height: newHeight });
         if (resizeDirection.includes("w") || resizeDirection.includes("n")) {
-          setPosition({ x: newX, y: newY });
+          setWindowPosition({ x: newX, y: newY });
         }
         setDragOffset({ x: e.clientX, y: e.clientY });
       }
@@ -135,10 +155,10 @@ export default function Window({
     const handleMouseUp = () => {
       if (isDragging) {
         // Save position to context
-        moveProgram(id, position);
+        moveProgram(id, windowPosition);
       } else if (isResizing) {
         // Save size to context
-        resizeProgram(id, size);
+        resizeProgram(id, windowSize);
       }
 
       setIsDragging(false);
@@ -155,7 +175,7 @@ export default function Window({
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isDragging, isResizing, dragOffset, position, size, id, resizeDirection, moveProgram, resizeProgram, minWidth, minHeight]);
+  }, [isDragging, isResizing, dragOffset, windowPosition, windowSize, id, resizeDirection, moveProgram, resizeProgram, minWidth, minHeight]);
 
   // Double-click on title bar to maximize/restore
   const handleTitleDoubleClick = () => {
@@ -180,67 +200,101 @@ export default function Window({
   } else {
     windowStyle = {
       ...windowStyle,
-      top: `${position.y}px`,
-      left: `${position.x}px`,
-      width: `${size.width}px`,
-      height: `${size.height}px`,
+      top: `${windowPosition.y}px`,
+      left: `${windowPosition.x}px`,
+      width: `${windowSize.width}px`,
+      height: `${windowSize.height}px`,
     };
   }
 
   return (
     <div
       ref={windowRef}
-      className={`absolute flex flex-col bg-[#ECE9D8] border border-[#0055EA] shadow-lg overflow-hidden`}
-      style={windowStyle}
+      className={`absolute flex flex-col shadow-lg overflow-hidden border`}
+      style={{
+        ...windowStyle,
+        borderColor: isActive ? "#0055EA" : "#a0a0a0",
+        borderWidth: "1px",
+        borderStyle: "solid",
+      }}
       onMouseDown={handleFocus}
     >
-      {/* Window Title Bar */}
+      {/* Window Title Bar - Usando estilo Windows XP com gradiente */}
       <div
-        className={`flex items-center px-2 py-1 ${isActive ? "xp-window-title" : "xp-window-title-inactive"}`}
+        className={`flex items-center px-2 py-1 h-7 select-none ${
+          isActive
+            ? "bg-gradient-to-r from-[#0C59B3] via-[#3984D8] to-[#0C59B3] text-white"
+            : "bg-gradient-to-r from-[#7F7F7F] via-[#B8B8B8] to-[#7F7F7F] text-[#D8E4F8]"
+        }`}
         onMouseDown={handleTitleMouseDown}
         onDoubleClick={handleTitleDoubleClick}
       >
-        <img
+        <Image
+          width={16}
+          height={16}
           src={icon}
-          alt=""
+          alt="Icon"
           className="w-4 h-4 mr-1"
         />
         <div className="flex-grow text-sm font-semibold truncate">{title}</div>
         <div className="flex space-x-1">
-          <button
-            className="w-6 h-6 flex items-center justify-center bg-[#7895E5] hover:bg-[#96B4FA] active:bg-[#3c55a3] rounded-none"
-            onClick={handleMinimize}
-          >
-            <div className="w-2 h-0.5 bg-white"></div>
-          </button>
+          {/* Botão de minimizar - Estilo Windows XP */}
+          {showMinimize && (
+            <button
+              className="w-[21px] h-[21px] flex items-center justify-center rounded-none focus:outline-none"
+              style={{
+                background: isActive ? "linear-gradient(to bottom, #FFFDFD 0%, #EEE9E5 100%)" : "linear-gradient(to bottom, #F5F5F5 0%, #E5E5E5 100%)",
+                boxShadow: "0 0 1px rgba(0,0,0,0.5), inset 1px 1px 0px white, inset -1px -1px 0px #C7C7C7",
+              }}
+              onClick={handleMinimize}
+            >
+              <div className="w-[8px] h-[2px] bg-[#0A246A]"></div>
+            </button>
+          )}
 
-          <button
-            className="w-6 h-6 flex items-center justify-center bg-[#7895E5] hover:bg-[#96B4FA] active:bg-[#3c55a3] rounded-none"
-            onClick={handleMaximize}
-          >
-            {isMaximized ? (
-              <div className="w-3 h-3 border border-white flex items-center justify-center">
-                <div className="w-2 h-2 bg-[#7895E5] border border-white"></div>
-              </div>
-            ) : (
-              <div className="w-3 h-3 border border-white"></div>
-            )}
-          </button>
+          {/* Botão de maximizar/restaurar - Estilo Windows XP */}
+          {showMaximize && (
+            <button
+              className="w-[21px] h-[21px] flex items-center justify-center rounded-none focus:outline-none"
+              style={{
+                background: isActive ? "linear-gradient(to bottom, #FFFDFD 0%, #EEE9E5 100%)" : "linear-gradient(to bottom, #F5F5F5 0%, #E5E5E5 100%)",
+                boxShadow: "0 0 1px rgba(0,0,0,0.5), inset 1px 1px 0px white, inset -1px -1px 0px #C7C7C7",
+              }}
+              onClick={handleMaximize}
+            >
+              {isMaximized ? (
+                // Ícone de restaurar - Estilo Windows XP
+                <div className="relative w-[10px] h-[10px]">
+                  <div className="absolute w-[6px] h-[6px] right-0 bottom-0 border border-[#0A246A]"></div>
+                  <div className="absolute w-[6px] h-[6px] left-0 top-0 border border-[#0A246A] bg-white"></div>
+                </div>
+              ) : (
+                // Ícone de maximizar - Estilo Windows XP
+                <div className="w-[8px] h-[8px] border border-[#0A246A]"></div>
+              )}
+            </button>
+          )}
 
+          {/* Botão de fechar - Estilo Windows XP */}
           <button
-            className="w-6 h-6 flex items-center justify-center bg-[#EB4848] hover:bg-[#F06A6A] active:bg-[#A72222] rounded-none"
+            className="w-[21px] h-[21px] flex items-center justify-center rounded-none focus:outline-none"
+            style={{
+              background: "linear-gradient(to bottom, #F5A3A3 0%, #B81B22 60%, #952116 100%)",
+              boxShadow: "0 0 1px rgba(0,0,0,0.5), inset 1px 1px 0px #FCBCBC, inset -1px -1px 0px #800000",
+            }}
             onClick={handleClose}
           >
-            <div className="w-3 h-3 flex items-center justify-center">
-              <div className="w-3 h-0.5 bg-white absolute transform rotate-45"></div>
-              <div className="w-3 h-0.5 bg-white absolute transform -rotate-45"></div>
+            {/* X branco - Estilo Windows XP */}
+            <div className="relative w-[10px] h-[10px]">
+              <div className="absolute w-[10px] h-[1px] bg-white transform rotate-45 top-[4.5px]"></div>
+              <div className="absolute w-[10px] h-[1px] bg-white transform -rotate-45 top-[4.5px]"></div>
             </div>
           </button>
         </div>
       </div>
 
-      {/* Window Content */}
-      <div className="flex-grow overflow-auto relative">{children}</div>
+      {/* Frame da janela - Estilo Windows XP */}
+      <div className="flex-grow overflow-auto relative border-t border-[#0055EA] bg-[#ECE9D8]">{children}</div>
 
       {/* Resize Handles (if window is resizable and not maximized) */}
       {resizable && !isMaximized && (

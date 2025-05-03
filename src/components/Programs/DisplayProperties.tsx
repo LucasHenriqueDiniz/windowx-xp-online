@@ -1,39 +1,76 @@
 "use client";
-import { useState, useEffect } from "react";
-import Window from "../Window";
 import { useDesktop } from "@/context/DesktopContext";
-import { AVAILABLE_WALLPAPERS, DefaultWallpaper } from "../../../public/assets/wallpapers";
 import { WindowPropertiesProps } from "@/types/window-properties";
-import { Display } from "../../../public/assets/icons";
-import { WindowsXpPreview, WindowsClassicPreview, DisplayComputer } from "../../../public/assets/display";
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import { DisplayComputer, WindowsClassicPreview, WindowsXpPreview } from "../../../public/assets/display";
+import { Display } from "../../../public/assets/icons";
+import { AVAILABLE_WALLPAPERS } from "../../../public/assets/wallpapers";
+import Window from "../Window";
 
 export default function DisplayProperties({ id, isActive, isMaximized, isMinimized, zIndex, position, size, props }: WindowPropertiesProps) {
-  const { wallpaper, setWallpaper, updateProgramProps } = useDesktop();
+  const { wallpaper, setWallpaper, backgroundColor, setBackgroundColor, wallpaperPosition, setWallpaperPosition, updateProgramProps } = useDesktop();
   const [currentTab, setCurrentTab] = useState<"themes" | "desktop" | "screensaver" | "appearance" | "settings">("desktop");
   const [selectedTheme, setSelectedTheme] = useState("Windows XP");
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [selectedWallpaper, setSelectedWallpaper] = useState(
-    props?.selectedWallpaper || AVAILABLE_WALLPAPERS.find((wp) => wp.path === wallpaper)?.path || DefaultWallpaper.src
-  );
+  const [selectedWallpaper, setSelectedWallpaper] = useState(props?.selectedWallpaper || wallpaper);
+  const [selectedBackgroundColor, setSelectedBackgroundColor] = useState(props?.selectedBackgroundColor || backgroundColor);
+  const [selectedPosition, setSelectedPosition] = useState(props?.wallpaperPosition || wallpaperPosition);
 
   // Sync local state with props from context
   useEffect(() => {
-    if (props?.selectedWallpaper && props.selectedWallpaper !== selectedWallpaper) {
+    if (props?.selectedWallpaper !== undefined && props.selectedWallpaper !== selectedWallpaper) {
       setSelectedWallpaper(props.selectedWallpaper);
-      setHasUnsavedChanges(true);
+    }
+    if (props?.selectedBackgroundColor && props.selectedBackgroundColor !== selectedBackgroundColor) {
+      setSelectedBackgroundColor(props.selectedBackgroundColor);
     }
     if (props?.selectedTheme && props.selectedTheme !== selectedTheme) {
       setSelectedTheme(props.selectedTheme);
-      setHasUnsavedChanges(true);
     }
-  }, [props?.selectedWallpaper, props?.selectedTheme, selectedWallpaper, selectedTheme]);
+    if (props?.wallpaperPosition && props.wallpaperPosition !== selectedPosition) {
+      setSelectedPosition(props.wallpaperPosition);
+    }
+  }, [
+    props?.selectedWallpaper,
+    props?.selectedBackgroundColor,
+    props?.selectedTheme,
+    props?.wallpaperPosition,
+    selectedWallpaper,
+    selectedBackgroundColor,
+    selectedTheme,
+    selectedPosition,
+  ]);
 
   // Update synchronized preview when user selects a wallpaper
-  const handleWallpaperSelect = (wallpaperPath: string) => {
+  const handleWallpaperSelect = (wallpaperPath: string | null) => {
     setSelectedWallpaper(wallpaperPath);
     // Sync to all users
-    updateProgramProps(id, { ...props, selectedWallpaper: wallpaperPath });
+    updateProgramProps(id, {
+      ...props,
+      selectedWallpaper: wallpaperPath,
+    });
+  };
+
+  // Handle background color change
+  const handleBackgroundColorChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const color = event.target.value;
+    setSelectedBackgroundColor(color);
+    // Sync to all users
+    updateProgramProps(id, {
+      ...props,
+      selectedBackgroundColor: color,
+    });
+  };
+
+  // Handle position change
+  const handlePositionChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const position = event.target.value as "center" | "tile" | "stretch";
+    setSelectedPosition(position);
+    // Sync to all users
+    updateProgramProps(id, {
+      ...props,
+      wallpaperPosition: position,
+    });
   };
 
   const handleThemeSelect = (theme: string) => {
@@ -49,8 +86,56 @@ export default function DisplayProperties({ id, isActive, isMaximized, isMinimiz
 
   const handleApply = () => {
     if (currentTab === "desktop") {
+      // Apply wallpaper
       setWallpaper(selectedWallpaper);
-      setHasUnsavedChanges(false);
+      // Apply wallpaper position
+      setWallpaperPosition(selectedPosition as "center" | "tile" | "stretch");
+      // Apply background color
+      setBackgroundColor(selectedBackgroundColor);
+    }
+  };
+
+  // Common background colors in Windows XP
+  const commonColors = [
+    { name: "Blue", value: "#0055EA" },
+    { name: "Green", value: "#008080" },
+    { name: "Olive Green", value: "#808000" },
+    { name: "Silver", value: "#C0C0C0" },
+    { name: "Red", value: "#AA0000" },
+    { name: "Purple", value: "#800080" },
+    { name: "Black", value: "#000000" },
+  ];
+
+  // Get the background style for the preview based on selected settings
+  const getPreviewBackgroundStyle = () => {
+    if (selectedWallpaper) {
+      switch (selectedPosition) {
+        case "stretch":
+          return {
+            backgroundImage: `url(${selectedWallpaper})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          };
+        case "tile":
+          return {
+            backgroundImage: `url(${selectedWallpaper})`,
+            backgroundSize: "auto",
+            backgroundRepeat: "repeat",
+            backgroundPosition: "0 0",
+          };
+        case "center":
+        default:
+          return {
+            backgroundImage: `url(${selectedWallpaper})`,
+            backgroundSize: "auto",
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "center center",
+          };
+      }
+    } else {
+      return {
+        backgroundColor: selectedBackgroundColor,
+      };
     }
   };
 
@@ -106,8 +191,8 @@ export default function DisplayProperties({ id, isActive, isMaximized, isMinimiz
               <p className="text-sm mb-4">
                 A theme is a background plus a set of sounds, icons, and other elements to help you personalize your computer with one click.
               </p>
-              <label className="text-sm mr-2 w-20">Theme:</label>
               <div className="flex items-center mb-2 gap-2">
+                <label className="text-sm mr-2 w-20">Theme:</label>
                 <select
                   className="border border-gray-400 text-sm p-1 flex-1"
                   onChange={(e) => handleThemeSelect(e.target.value)}
@@ -116,8 +201,8 @@ export default function DisplayProperties({ id, isActive, isMaximized, isMinimiz
                   <option>Windows XP</option>
                   <option>Windows Classic</option>
                 </select>
-                <label className="xp-button text-sm mr-2 w-20">Save As...</label>
-                <button className="xp-button text-sm">Browse...</button>
+                <button className="xp-button text-sm">Save As...</button>
+                <button className="xp-button text-sm ml-2">Browse...</button>
               </div>
               <h4 className="mb-2">Sample</h4>
               <div className="flex items-center mb-2 gap-2 w-full">
@@ -134,72 +219,94 @@ export default function DisplayProperties({ id, isActive, isMaximized, isMinimiz
 
           {currentTab === "desktop" && (
             <div className="flex flex-col">
-              <div className="flex justify-center mt-2 mb-4">
-                <div className="relative">
-                  {/* Wallpaper background positioned behind the monitor */}
-                  <div
-                    className="absolute top-[18px] left-[5px] w-[240px] h-[150px] bg-cover bg-center"
-                    style={{ backgroundImage: `url(${selectedWallpaper})` }}
-                  ></div>
-                  {/* Computer monitor image overlaid on top */}
+              {/* Desktop Preview with Monitor */}
+              <div className="h-48 flex justify-center items-center">
+                <div className="relative w-40 h-36">
                   <Image
                     src={DisplayComputer.src}
-                    alt="Display"
-                    width={200}
-                    height={150}
-                    className="w-64 relative z-10"
+                    alt="Computer Monitor"
+                    width={160}
+                    height={144}
+                    className="absolute inset-0"
                   />
+                  {/* Screen area within monitor */}
+                  <div
+                    className="absolute left-[11%] top-[8%] w-[83%] h-[64%]"
+                    style={getPreviewBackgroundStyle()}
+                  ></div>
                 </div>
               </div>
 
-              <label className="text-sm">Background:</label>
-              <div className="flex gap-4 mt-2">
-                <div className="flex-1">
-                  <div className="h-32 overflow-y-auto border border-gray-400 p-1 mb-2">
-                    <div className="flex flex-col">
-                      {AVAILABLE_WALLPAPERS.map((wallpaper) => (
-                        <div
-                          key={wallpaper.path}
-                          className={`cursor-pointer flex items-center px-1 py-0.5 ${selectedWallpaper === wallpaper.path ? "bg-[#316AC5] text-white" : ""}`}
-                          onClick={() => handleWallpaperSelect(wallpaper.path)}
-                        >
-                          <div
-                            className="w-4 h-4 mr-2 bg-cover bg-center border border-gray-400"
-                            style={{ backgroundImage: `url(${wallpaper.path})` }}
-                          ></div>
-                          <div className="text-xs truncate">{wallpaper.name}</div>
-                        </div>
-                      ))}
+              <div className="flex">
+                <div className="grid grid-cols-1 h-32 overflow-y-auto border border-gray-400 p-2">
+                  {AVAILABLE_WALLPAPERS.map((wallpaper) => (
+                    <div
+                      key={wallpaper.name}
+                      className={`cursor-pointer flex items-center`}
+                      onClick={() => handleWallpaperSelect(wallpaper.path)}
+                    >
+                      <Image
+                        src={wallpaper.icon}
+                        alt={wallpaper.name}
+                        width={32}
+                        height={32}
+                        className="w-4 h-4"
+                      />
+                      <div className={`ml-2 text-sm px-1 ${selectedWallpaper === wallpaper.path ? "bg-[#316AC5] text-white" : "hover:bg-[#eee]"}`}>
+                        {wallpaper.name}
+                      </div>
                     </div>
+                  ))}
+                </div>
+                <div className="flex items-center mt-2 mb-4">
+                  <div className="flex items-center">
+                    <button className="xp-button text-sm">Browse...</button>
                   </div>
+                  <label className="text-sm mr-2 w-20">Position:</label>
+                  <select
+                    className="border border-gray-400 text-sm p-1 flex-1"
+                    value={selectedPosition}
+                    onChange={handlePositionChange}
+                    disabled={!selectedWallpaper}
+                  >
+                    <option value="center">Center</option>
+                    <option value="tile">Tile</option>
+                    <option value="stretch">Stretch</option>
+                  </select>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <button className="xp-button text-sm">Browse...</button>
-                  <label className="text-sm block mb-1">Position:</label>
-                  <select className="border border-gray-400 text-sm p-1 w-full">
-                    <option>Stretch</option>
-                    <option>Center</option>
-                    <option>Tile</option>
+                <div className="mb-4">
+                  <label className="text-sm block mb-2">Background Color:</label>
+                  <select
+                    className="border border-gray-400 text-sm p-1 w-full"
+                    value={selectedBackgroundColor}
+                    onChange={handleBackgroundColorChange}
+                  >
+                    {commonColors.map((color) => (
+                      <option
+                        key={color.value}
+                        value={color.value}
+                      >
+                        {color.name}
+                      </option>
+                    ))}
+                    <option value="#FFFFFF">White</option>
+                    <option value="#FFFF00">Yellow</option>
+                    <option value="#FF00FF">Magenta</option>
+                    <option value="#00FFFF">Cyan</option>
                   </select>
-
-                  <label className="text-sm block mb-1">Color:</label>
-                  <div className="flex items-center">
-                    <select className="border border-gray-400 text-sm p-1 ml-2 w-full">
-                      <option className="w-6 h-6 bg-blue-800 border border-gray-400"></option>
-                      <option>Other...</option>
-                    </select>
-                  </div>
                 </div>
               </div>
-              <button className="xp-button text-sm">Customize Desktop...</button>
+              <div className="flex items-center">
+                <button className="xp-button text-sm">Browse...</button>
+              </div>
             </div>
           )}
 
           {currentTab === "screensaver" && (
             <div className="flex flex-col">
               <h3 className="font-bold mb-2">Screen Saver</h3>
-              <p className="text-sm mb-4">A screen saver is a picture or animation that covers your screen when you're not using your computer.</p>
+              <p className="text-sm mb-4">A screen saver is a picture or animation that covers your screen when you&apos;re not using your computer.</p>
 
               <div className="border border-gray-400 p-2 mb-4 bg-black h-32 flex justify-center items-center">
                 <p className="text-sm text-gray-500 text-white">Screen saver preview</p>
@@ -299,7 +406,9 @@ export default function DisplayProperties({ id, isActive, isMaximized, isMinimiz
               <div className="border border-gray-400 p-2 mb-4 bg-white h-32 flex justify-center items-center">
                 <div className="flex items-center">
                   <div className="mr-4">
-                    <img
+                    <Image
+                      width={64}
+                      height={64}
                       src="/assets/icons/display.png"
                       className="w-16 h-16"
                       alt="Monitor"
@@ -354,15 +463,14 @@ export default function DisplayProperties({ id, isActive, isMaximized, isMinimiz
 
         {/* Action Buttons */}
         <div className="p-4 bg-[#F0F0F0] border-t border-gray-400 flex justify-end space-x-2">
-          <button className="xp-button">OK</button>
-          <button className="xp-button">Cancel</button>
           <button
             className="xp-button"
             onClick={handleApply}
-            disabled={!hasUnsavedChanges}
           >
             Apply
           </button>
+          <button className="xp-button">OK</button>
+          <button className="xp-button">Cancel</button>
         </div>
       </div>
     </Window>

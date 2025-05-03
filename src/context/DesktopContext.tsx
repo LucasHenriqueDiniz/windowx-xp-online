@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { database } from "../../lib/firebase";
 import { ref, onValue, set } from "firebase/database";
 import { DefaultWallpaper } from "../../public/assets/wallpapers";
+import * as Icons from "../../public/assets/icons";
 
 // Define icon metadata structure
 export interface IconMetadata {
@@ -23,6 +24,7 @@ export interface ProgramData {
   size?: { width: number; height: number };
   isMaximized?: boolean;
   isMinimized?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   props?: Record<string, any>;
 }
 
@@ -32,13 +34,16 @@ interface DesktopContextType {
   iconArrangement: "auto" | "normal";
   iconSize: "small" | "medium" | "large";
   wallpaper: string | null; // Modificado para aceitar null
+  wallpaperPosition: "center" | "tile" | "stretch"; // Nova propriedade para a posição do wallpaper
   backgroundColor: string; // Nova propriedade para cor de fundo
   programs: ProgramData[];
   setIconSize: (size: "small" | "medium" | "large") => void;
   setWallpaper: (wallpaperPath: string | null) => void; // Atualizado para aceitar null
+  setWallpaperPosition: (position: "center" | "tile" | "stretch") => void; // Nova função
   setBackgroundColor: (color: string) => void; // Nova função para definir cor de fundo
   moveIcon: (iconId: string, newPosition: number) => void;
   setIconArrangement: (arrangement: "auto" | "normal") => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   openProgram: (programType: string, props?: Record<string, any>) => string | null;
   closeProgram: (programId: string, persistProps?: boolean) => void;
   showErrorWindow: (message: string) => void;
@@ -48,11 +53,25 @@ interface DesktopContextType {
   maximizeProgram: (programId: string, isMaximized: boolean) => void;
   moveProgram: (programId: string, position: { x: number; y: number }) => void;
   resizeProgram: (programId: string, size: { width: number; height: number }) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   updateProgramProps: (programId: string, props: Record<string, any>) => void;
 }
 
 // Create the context with a default value
 const DesktopContext = createContext<DesktopContextType | undefined>(undefined);
+// Lista padrão de ícones baseada no program-library.ts
+export const defaultIcons = [
+  "my-computer",
+  "my-documents",
+  "recycle-bin",
+  "internet-explorer",
+  "paint",
+  "calculator",
+  "notepad",
+  "system-restore",
+  "my-network",
+  "control-panel",
+];
 
 // Provider component
 export function DesktopProvider({ children }: { children: ReactNode }) {
@@ -60,6 +79,7 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
   const [iconIds, setIconIds] = useState<string[]>([]);
   const [iconSize, setIconSize] = useState<"small" | "medium" | "large">("medium");
   const [wallpaper, setWallpaperState] = useState<string | null>(DefaultWallpaper.src);
+  const [wallpaperPosition, setWallpaperPositionState] = useState<"center" | "tile" | "stretch">("center");
   const [backgroundColor, setBackgroundColorState] = useState<string>("#008080"); // Cor padrão do Windows XP (verde azulado)
   const [iconArrangement, setIconArrangementState] = useState<"auto" | "normal">("auto");
   const [programs, setPrograms] = useState<ProgramData[]>([]);
@@ -81,7 +101,6 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
         setIconIds(data);
       } else {
         // Set default icons if none exist
-        const defaultIcons = ["my-computer", "my-documents", "recycle-bin", "internet-explorer", "my-network", "control-panel"];
         set(iconsRef, defaultIcons);
         setIconIds(defaultIcons);
       }
@@ -181,6 +200,12 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
     setWallpaperState(wallpaperPath);
   };
 
+  // Update wallpaper position in Firebase
+  const handleSetWallpaperPosition = (position: "center" | "tile" | "stretch") => {
+    set(ref(database, "desktop/wallpaperPosition"), position);
+    setWallpaperPositionState(position);
+  };
+
   // Update background color in Firebase
   const handleSetBackgroundColor = (color: string) => {
     set(ref(database, "desktop/backgroundColor"), color);
@@ -194,6 +219,7 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
   };
 
   // Program management functions
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const openProgram = (programType: string, props?: Record<string, any>) => {
     // Limit to 16 windows
     const nonErrorWindows = programs.filter((p) => p.type !== "error-dialog");
@@ -209,7 +235,7 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
 
     // Get program title and icon based on program type
     let title = "Program";
-    let icon = "/assets/icons/Folder.png";
+    let icon = Icons.Folder.src; // Default icon
 
     switch (programType) {
       case "explorer":
@@ -225,27 +251,31 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
         break;
       case "browser":
         title = "Internet Explorer";
-        icon = "/assets/icons/Internet Explorer 6.png";
+        icon = Icons.InternetExplorer.src;
         break;
       case "notepad":
         title = "Notepad";
-        icon = "/assets/icons/Notepad file.png";
+        icon = Icons.Notepad.src;
         break;
       case "calculator":
         title = "Calculator";
-        icon = "/assets/icons/calculator.png";
+        icon = Icons.Calculator.src;
         break;
       case "control-panel":
         title = "Control Panel";
-        icon = "/assets/icons/Control Panel.png";
+        icon = Icons.ControlPanel.src;
         break;
       case "display-properties":
         title = "Display Properties";
-        icon = "/assets/icons/display.png";
+        icon = Icons.Display.src;
         break;
       case "error-dialog":
         title = "System Error";
-        icon = "/assets/icons/Windows XP Error.png";
+        icon = Icons.ErrorDialog.src;
+        break;
+      case "system-restore":
+        title = "System Restore";
+        icon = Icons.SystemRestore.src;
         break;
     }
 
@@ -396,6 +426,7 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
   };
 
   // Update program-specific properties (for synchronizing states like previews)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateProgramProps = (programId: string, newProps: Record<string, any>) => {
     const updatedPrograms = programs.map((program) => {
       if (program.id === programId) {
@@ -420,11 +451,13 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
         iconIds,
         iconSize,
         wallpaper,
+        wallpaperPosition,
         backgroundColor,
         iconArrangement,
         programs,
         setIconSize: handleSetIconSize,
         setWallpaper: handleSetWallpaper,
+        setWallpaperPosition: handleSetWallpaperPosition,
         setBackgroundColor: handleSetBackgroundColor,
         moveIcon,
         setIconArrangement: handleSetIconArrangement,

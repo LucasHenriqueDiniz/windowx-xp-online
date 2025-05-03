@@ -63,7 +63,6 @@ export default function Calculator({ id, isActive, isMaximized, isMinimized, zIn
 
     const currentValue = parseFloat(display);
     const result = calculate(prevValue, currentValue, operation);
-
     setDisplay(String(result));
     setPrevValue(null);
     setOperation(null);

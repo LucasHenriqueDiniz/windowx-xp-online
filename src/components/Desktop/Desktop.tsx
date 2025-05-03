@@ -1,77 +1,17 @@
 "use client";
 import { useDesktop } from "@/context/DesktopContext";
-import { useState, useEffect, useMemo } from "react";
-import DesktopContextMenu from "./DesktopContextMenu";
-import ProgramManager from "../Window/ProgramManager";
+import { getProgramDefinition } from "@/data/program-library";
 import { useProgramManager } from "@/hooks/useProgramManager";
-
-// Icon data lookup function (simulating the optimized approach)
-const getIconData = (iconId: string) => {
-  // This would typically fetch from a central store or cached data
-  // For now, we'll use a simple object lookup that simulates fetching from an API
-  const iconLibrary: Record<string, { name: string; icon: string; program: string }> = {
-    "my-computer": {
-      name: "My Computer",
-      icon: "/assets/icons/My Computer.png",
-      program: "explorer",
-    },
-    "my-documents": {
-      name: "My Documents",
-      icon: "/assets/icons/My Documents.png",
-      program: "explorer",
-    },
-    "recycle-bin": {
-      name: "Recycle Bin",
-      icon: "/assets/icons/Recycle Bin.png",
-      program: "explorer",
-    },
-    "internet-explorer": {
-      name: "Internet Explorer",
-      icon: "/assets/icons/Internet Explorer 6.png",
-      program: "browser",
-    },
-    notepad: {
-      name: "Notepad",
-      icon: "/assets/icons/Notepad file.png",
-      program: "notepad",
-    },
-    calculator: {
-      name: "Calculator",
-      icon: "/assets/icons/calculator.png",
-      program: "calculator",
-    },
-    "control-panel": {
-      name: "Control Panel",
-      icon: "/assets/icons/Control Panel.png",
-      program: "control-panel",
-    },
-    "my-network": {
-      name: "My Network Places",
-      icon: "/assets/icons/My Network Places.png",
-      program: "explorer",
-    },
-    "display-properties": {
-      name: "Display Properties",
-      icon: "/assets/icons/display.png",
-      program: "display-properties",
-    },
-  };
-
-  return (
-    iconLibrary[iconId] || {
-      name: iconId,
-      icon: "/assets/icons/Folder.png",
-      program: "explorer",
-    }
-  );
-};
+import { useEffect, useMemo, useState } from "react";
+import ProgramManager from "../Window/ProgramManager";
+import DesktopContextMenu from "./DesktopContextMenu";
 
 interface DesktopProps {
   className?: string;
 }
 
 export default function Desktop({ className = "" }: DesktopProps) {
-  const { iconIds, iconSize, wallpaper, iconArrangement } = useDesktop();
+  const { iconIds, iconSize, wallpaper, backgroundColor, iconArrangement, wallpaperPosition } = useDesktop();
   const { launchProgram } = useProgramManager();
   const [gridCols, setGridCols] = useState(6);
   const [gridRows, setGridRows] = useState(10);
@@ -80,6 +20,40 @@ export default function Desktop({ className = "" }: DesktopProps) {
     y: 0,
     visible: false,
   });
+
+  // Determine background style based on wallpaper availability and position
+  const backgroundStyle = useMemo(() => {
+    if (wallpaper) {
+      switch (wallpaperPosition) {
+        case "stretch":
+          return {
+            backgroundImage: `url(${wallpaper})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          };
+        case "tile":
+          return {
+            backgroundImage: `url(${wallpaper})`,
+            backgroundSize: "auto",
+            backgroundRepeat: "repeat",
+            backgroundPosition: "0 0",
+          };
+        case "center":
+        default:
+          return {
+            backgroundImage: `url(${wallpaper})`,
+            backgroundSize: "auto",
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "center center",
+            backgroundColor: backgroundColor,
+          };
+      }
+    } else {
+      return {
+        backgroundColor: backgroundColor,
+      };
+    }
+  }, [wallpaper, backgroundColor, wallpaperPosition]);
 
   // Adjust grid based on icon size
   useEffect(() => {
@@ -165,18 +139,14 @@ export default function Desktop({ className = "" }: DesktopProps) {
 
   // Handle desktop icon double-click
   const handleIconDoubleClick = (iconId: string) => {
-    const iconData = getIconData(iconId);
-    launchProgram(iconData.program as any, { iconId });
+    const iconData = getProgramDefinition(iconId);
+    launchProgram(iconData.program, { iconId });
   };
 
   return (
     <div
       className={`relative w-full h-full overflow-hidden ${className}`}
-      style={{
-        backgroundImage: `url(${wallpaper})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
+      style={backgroundStyle}
       onContextMenu={handleContextMenu}
     >
       {/* Windows XP style desktop grid */}
@@ -193,10 +163,7 @@ export default function Desktop({ className = "" }: DesktopProps) {
               >
                 {iconId && (
                   <DesktopIcon
-                    icon={{
-                      id: iconId,
-                      ...getIconData(iconId),
-                    }}
+                    icon={getProgramDefinition(iconId)}
                     size={iconSize}
                     onClick={() => handleIconDoubleClick(iconId)}
                   />

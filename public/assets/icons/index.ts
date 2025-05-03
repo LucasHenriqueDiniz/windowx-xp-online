@@ -17,6 +17,8 @@ export { default as WordPad } from "./wordpad.png";
 export { default as CommandPrompt } from "./Command prompt.png";
 export { default as WindowsExplorer } from "./windows explorer.png";
 export { default as OutlookExpress } from "./Outlook Express.png";
+export { default as ErrorDialog } from "./error.png";
+export { default as WarningDialog } from "./warning.png";
 
 // Program icons
 export { default as Folder } from "./Folder.png";
@@ -37,6 +39,7 @@ export { default as Run } from "./Run.png";
 export { default as LogOff } from "./Log off.png";
 export { default as ShutDown } from "./Shut down.png";
 export { default as Camera } from "./camera.png";
+export { default as NewFile } from "./new file.png";
 
 // System tray icons
 export { default as Volume } from "./volume.png";
@@ -88,7 +91,6 @@ export { default as Fax } from "./fax.png";
 export { default as Connections } from "./Conections.png";
 export { default as Activation } from "./Activation.png";
 export { default as Theme } from "./Theme.png";
-export { default as RunDLL32 } from "./rundll32.png";
 export { default as Search } from "./Search.png";
 export { default as MyMusic } from "./My Music.png";
 export { default as MyVideos } from "./My Videos.png";
