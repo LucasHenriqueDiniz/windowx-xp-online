@@ -3,6 +3,7 @@ import { StartMenuProvider } from "@/context/StartMenuContext";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,6 +27,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Carrega o arquivo de configuração do Firebase */}
+        <Script
+          src="/config.js"
+          strategy="beforeInteractive"
+        />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <CursorProvider>
           <StartMenuProvider>{children}</StartMenuProvider>
