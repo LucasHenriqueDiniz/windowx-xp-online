@@ -2,7 +2,15 @@ import { initializeApp, getApps } from "firebase/app";
 import { getDatabase, Database } from "firebase/database";
 
 // Configuração condicional para evitar erros durante o build estático
-const firebaseConfig = {
+let firebaseConfig: {
+  apiKey?: string | undefined;
+  authDomain?: string | undefined;
+  databaseURL?: string | undefined;
+  projectId?: string | undefined;
+  storageBucket?: string | undefined;
+  messagingSenderId?: string | undefined;
+  appId?: string | undefined;
+} = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
@@ -17,9 +25,22 @@ let app;
 let database: Database | null = null;
 let initializationError: string | null = null;
 
-// Verifica se está no navegador e se as variáveis essenciais estão definidas
+// Verifica se está no navegador
 const isBrowser = typeof window !== "undefined";
-const hasRequiredConfig = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL && process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+
+// Se estiver no navegador, tenta carregar a configuração do arquivo config.js
+if (isBrowser) {
+  // Verifica se o config global está disponível (definido em public/config.js)
+  // Usando tipo globalThis para evitar erro de tipagem
+  if (typeof window.firebaseConfig !== "undefined") {
+    console.log("Usando configuração do Firebase do arquivo config.js");
+    firebaseConfig = window.firebaseConfig;
+  }
+}
+
+// Verifica se as variáveis essenciais estão definidas
+const hasRequiredConfig =
+  (firebaseConfig.databaseURL && firebaseConfig.projectId) || (process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL && process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
 
 // Só inicializa se estiver no navegador, tiver as configurações necessárias, e não estiver já inicializado
 if (isBrowser && hasRequiredConfig && !getApps().length) {
