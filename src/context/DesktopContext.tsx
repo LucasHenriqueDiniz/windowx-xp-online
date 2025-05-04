@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { database } from "../../lib/firebase";
+import { database, isDatabaseAvailable } from "../../lib/firebase";
 import { ref, onValue, set } from "firebase/database";
 import { DefaultWallpaper } from "../../public/assets/wallpapers";
 import * as Icons from "../../public/assets/icons";
@@ -84,15 +84,28 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
   const [iconArrangement, setIconArrangementState] = useState<"auto" | "normal">("auto");
   const [programs, setPrograms] = useState<ProgramData[]>([]);
   const [nextZIndex, setNextZIndex] = useState(100);
+  const [dbAvailable, setDbAvailable] = useState(false);
 
-  // Load desktop settings from Firebase
+  // Check database availability first before attempting to connect
   useEffect(() => {
-    const iconsRef = ref(database, "desktop/iconIds");
-    const sizeRef = ref(database, "desktop/iconSize");
-    const wallpaperRef = ref(database, "desktop/wallpaper");
-    const backgroundColorRef = ref(database, "desktop/backgroundColor");
-    const arrangementRef = ref(database, "desktop/iconArrangement");
-    const programsRef = ref(database, "desktop/programs");
+    // Only proceed if the database is available
+    if (isDatabaseAvailable()) {
+      setDbAvailable(true);
+    } else {
+      console.error("Database is not available. All desktop operations will be local only.");
+    }
+  }, []);
+
+  // Load desktop settings from Firebase only if DB is available
+  useEffect(() => {
+    if (!dbAvailable) return;
+
+    const iconsRef = ref(database!, "desktop/iconIds");
+    const sizeRef = ref(database!, "desktop/iconSize");
+    const wallpaperRef = ref(database!, "desktop/wallpaper");
+    const backgroundColorRef = ref(database!, "desktop/backgroundColor");
+    const arrangementRef = ref(database!, "desktop/iconArrangement");
+    const programsRef = ref(database!, "desktop/programs");
 
     // Listen for icons
     const iconsUnsubscribe = onValue(iconsRef, (snapshot) => {
@@ -167,7 +180,15 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
       arrangementUnsubscribe();
       programsUnsubscribe();
     };
-  }, []);
+  }, [dbAvailable]);
+
+  // Helper function to update Firebase if available
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updateFirebase = (path: string, value: any) => {
+    if (dbAvailable) {
+      set(ref(database!, path), value);
+    }
+  };
 
   // Move an icon to a new position
   const moveIcon = (iconId: string, newPosition: number) => {
@@ -182,39 +203,39 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
       // Insert at new position
       newOrder.splice(newPosition, 0, iconId);
 
-      // Update Firebase
-      set(ref(database, "desktop/iconIds"), newOrder);
+      // Update Firebase if available
+      updateFirebase("desktop/iconIds", newOrder);
       setIconIds(newOrder);
     }
   };
 
   // Update icon size in Firebase
   const handleSetIconSize = (size: "small" | "medium" | "large") => {
-    set(ref(database, "desktop/iconSize"), size);
+    updateFirebase("desktop/iconSize", size);
     setIconSize(size);
   };
 
   // Update wallpaper in Firebase
   const handleSetWallpaper = (wallpaperPath: string | null) => {
-    set(ref(database, "desktop/wallpaper"), wallpaperPath);
+    updateFirebase("desktop/wallpaper", wallpaperPath);
     setWallpaperState(wallpaperPath);
   };
 
   // Update wallpaper position in Firebase
   const handleSetWallpaperPosition = (position: "center" | "tile" | "stretch") => {
-    set(ref(database, "desktop/wallpaperPosition"), position);
+    updateFirebase("desktop/wallpaperPosition", position);
     setWallpaperPositionState(position);
   };
 
   // Update background color in Firebase
   const handleSetBackgroundColor = (color: string) => {
-    set(ref(database, "desktop/backgroundColor"), color);
+    updateFirebase("desktop/backgroundColor", color);
     setBackgroundColorState(color);
   };
 
   // Update icon arrangement in Firebase
   const handleSetIconArrangement = (arrangement: "auto" | "normal") => {
-    set(ref(database, "desktop/iconArrangement"), arrangement);
+    updateFirebase("desktop/iconArrangement", arrangement);
     setIconArrangementState(arrangement);
   };
 
@@ -295,7 +316,7 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
     };
 
     const updatedPrograms = [...programs, newProgram];
-    set(ref(database, "desktop/programs"), updatedPrograms);
+    updateFirebase("desktop/programs", updatedPrograms);
     setPrograms(updatedPrograms);
     setNextZIndex(nextZIndex + 1);
 
@@ -329,7 +350,7 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    set(ref(database, "desktop/programs"), updatedPrograms);
+    updateFirebase("desktop/programs", updatedPrograms);
     setPrograms(updatedPrograms);
   };
 
@@ -345,7 +366,7 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
         }
         return p;
       });
-      set(ref(database, "desktop/programs"), updatedPrograms);
+      updateFirebase("desktop/programs", updatedPrograms);
       setPrograms(updatedPrograms);
       focusProgram(existingErrorWindow.id);
       return;
@@ -363,7 +384,7 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
       return program;
     });
 
-    set(ref(database, "desktop/programs"), updatedPrograms);
+    updateFirebase("desktop/programs", updatedPrograms);
     setPrograms(updatedPrograms);
     setNextZIndex(nextZIndex + 1);
   };
@@ -376,7 +397,7 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
       return program;
     });
 
-    set(ref(database, "desktop/programs"), updatedPrograms);
+    updateFirebase("desktop/programs", updatedPrograms);
     setPrograms(updatedPrograms);
   };
 
@@ -385,7 +406,7 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
       return { ...program, isMinimized: true };
     });
 
-    set(ref(database, "desktop/programs"), updatedPrograms);
+    updateFirebase("desktop/programs", updatedPrograms);
     setPrograms(updatedPrograms);
   };
 
@@ -397,7 +418,7 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
       return program;
     });
 
-    set(ref(database, "desktop/programs"), updatedPrograms);
+    updateFirebase("desktop/programs", updatedPrograms);
     setPrograms(updatedPrograms);
   };
 
@@ -409,7 +430,7 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
       return program;
     });
 
-    set(ref(database, "desktop/programs"), updatedPrograms);
+    updateFirebase("desktop/programs", updatedPrograms);
     setPrograms(updatedPrograms);
   };
 
@@ -421,7 +442,7 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
       return program;
     });
 
-    set(ref(database, "desktop/programs"), updatedPrograms);
+    updateFirebase("desktop/programs", updatedPrograms);
     setPrograms(updatedPrograms);
   };
 
@@ -441,7 +462,7 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
       return program;
     });
 
-    set(ref(database, "desktop/programs"), updatedPrograms);
+    updateFirebase("desktop/programs", updatedPrograms);
     setPrograms(updatedPrograms);
   };
 
