@@ -14,7 +14,8 @@ const firebaseConfig = {
 
 // Initialize Firebase only on the client side or if not already initialized
 let app;
-let database: Database | undefined = undefined;
+let database: Database | null = null;
+let initializationError: string | null = null;
 
 // Verifica se está no navegador e se as variáveis essenciais estão definidas
 const isBrowser = typeof window !== "undefined";
@@ -28,7 +29,16 @@ if (isBrowser && hasRequiredConfig && !getApps().length) {
     console.log("Firebase initialized successfully");
   } catch (error) {
     console.error("Firebase initialization error:", error);
+    initializationError = error instanceof Error ? error.message : "Erro desconhecido ao inicializar o Firebase";
   }
+} else if (isBrowser && !hasRequiredConfig) {
+  initializationError = "Configuração do Firebase incompleta. Verifique as variáveis de ambiente.";
 }
 
-export { database };
+// Function to check if database is available
+const isDatabaseAvailable = () => database !== null;
+
+// Function to get the initialization error
+const getInitializationError = () => initializationError;
+
+export { database, isDatabaseAvailable, getInitializationError };

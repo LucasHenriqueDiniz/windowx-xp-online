@@ -15,7 +15,7 @@ export default function FirebaseTest() {
       return () => {};
     }
 
-    const messageRef = ref(database, "test/message");
+    const messageRef = ref(database!, "test/message");
 
     // Listen for changes
     const unsubscribe = onValue(messageRef, (snapshot) => {
@@ -35,7 +35,7 @@ export default function FirebaseTest() {
       return;
     }
 
-    const messageRef = ref(database, "test/message");
+    const messageRef = ref(database!, "test/message");
     set(messageRef, inputValue);
   };
 

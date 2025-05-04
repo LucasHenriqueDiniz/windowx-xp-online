@@ -44,7 +44,7 @@ export default function Taskbar({ className = "" }: TaskbarProps) {
 
   // Load taskbar settings from Firebase
   useEffect(() => {
-    const taskbarSettingsRef = ref(database, "system/taskbar");
+    const taskbarSettingsRef = ref(database!, "system/taskbar");
 
     const unsubscribe = onValue(taskbarSettingsRef, (snapshot) => {
       if (snapshot.exists()) {
@@ -62,7 +62,7 @@ export default function Taskbar({ className = "" }: TaskbarProps) {
 
   // Sync start menu state with Firebase
   useEffect(() => {
-    const startMenuRef = ref(database, "system/startMenu");
+    const startMenuRef = ref(database!, "system/startMenu");
 
     // Listen for changes to global start menu state
     const unsubscribe = onValue(startMenuRef, (snapshot) => {
@@ -89,7 +89,7 @@ export default function Taskbar({ className = "" }: TaskbarProps) {
       if (isResizing) {
         setIsResizing(false);
         // Save taskbar height to Firebase
-        const taskbarSettingsRef = ref(database, "system/taskbar");
+        const taskbarSettingsRef = ref(database!, "system/taskbar");
         get(taskbarSettingsRef).then((snapshot) => {
           const currentSettings = snapshot.exists() ? snapshot.val() : {};
           set(taskbarSettingsRef, { ...currentSettings, height: taskbarHeight });
@@ -132,7 +132,7 @@ export default function Taskbar({ className = "" }: TaskbarProps) {
     setIsStartMenuOpen(newState);
 
     // Update Firebase for all users
-    const startMenuRef = ref(database, "system/startMenu");
+    const startMenuRef = ref(database!, "system/startMenu");
     set(startMenuRef, { isOpen: newState, lastUpdated: Date.now() });
 
     // Play sound only when opening
@@ -157,7 +157,7 @@ export default function Taskbar({ className = "" }: TaskbarProps) {
     launchProgram(program);
 
     // Log the launch for all users to see
-    const launchLogRef = ref(database, "system/programLaunches");
+    const launchLogRef = ref(database!, "system/programLaunches");
     get(launchLogRef).then((snapshot) => {
       const launches = snapshot.exists() ? snapshot.val() : [];
       launches.push({
@@ -177,13 +177,13 @@ export default function Taskbar({ className = "" }: TaskbarProps) {
   // Handle show desktop click
   const handleShowDesktop = () => {
     // Minimize all programs - synchronized for all users
-    const showDesktopRef = ref(database, "system/showDesktop");
+    const showDesktopRef = ref(database!, "system/showDesktop");
     set(showDesktopRef, { triggered: true, timestamp: Date.now() });
   };
 
   // Listen for show desktop events
   useEffect(() => {
-    const showDesktopRef = ref(database, "system/showDesktop");
+    const showDesktopRef = ref(database!, "system/showDesktop");
 
     const unsubscribe = onValue(showDesktopRef, (snapshot) => {
       if (snapshot.exists() && snapshot.val().triggered) {
@@ -214,7 +214,7 @@ export default function Taskbar({ className = "" }: TaskbarProps) {
     setIsTaskbarLocked(newState);
 
     // Update Firebase
-    const taskbarSettingsRef = ref(database, "system/taskbar");
+    const taskbarSettingsRef = ref(database!, "system/taskbar");
     get(taskbarSettingsRef).then((snapshot) => {
       const currentSettings = snapshot.exists() ? snapshot.val() : {};
       set(taskbarSettingsRef, { ...currentSettings, isLocked: newState });
@@ -392,7 +392,7 @@ export default function Taskbar({ className = "" }: TaskbarProps) {
           onClose={() => {
             // Close locally and globally
             setIsStartMenuOpen(false);
-            const startMenuRef = ref(database, "system/startMenu");
+            const startMenuRef = ref(database!, "system/startMenu");
             set(startMenuRef, { isOpen: false, lastUpdated: Date.now() });
           }}
         />

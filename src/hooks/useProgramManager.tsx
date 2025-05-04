@@ -23,7 +23,7 @@ export function useProgramManager() {
     if (isListening) return;
 
     // Listen for global program open/close events
-    const globalProgramsRef = ref(database, "system/programs");
+    const globalProgramsRef = ref(database!, "system/programs");
 
     const unsubscribe = onValue(globalProgramsRef, (snapshot) => {
       if (!snapshot.exists()) return;
@@ -72,7 +72,7 @@ export function useProgramManager() {
         }
 
         // Mark as processed so we don't process it again
-        const eventRef = ref(database, `system/programs/${key}`);
+        const eventRef = ref(database!, `system/programs/${key}`);
         set(eventRef, {
           ...data,
           processed: true,
@@ -102,7 +102,7 @@ export function useProgramManager() {
     );
 
     // Add the program event to Firebase for all users
-    const programsRef = ref(database, "system/programs");
+    const programsRef = ref(database!, "system/programs");
     push(programsRef, {
       action: "open",
       programType,
@@ -121,7 +121,7 @@ export function useProgramManager() {
     if (!program) return;
 
     // Add the close event to Firebase for all users
-    const programsRef = ref(database, "system/programs");
+    const programsRef = ref(database!, "system/programs");
     push(programsRef, {
       action: "close",
       programId: program.globalId,
@@ -138,7 +138,7 @@ export function useProgramManager() {
     if (!program) return;
 
     // Add the focus event to Firebase for all users
-    const programsRef = ref(database, "system/programs");
+    const programsRef = ref(database!, "system/programs");
     push(programsRef, {
       action: "focus",
       programId: program.globalId,

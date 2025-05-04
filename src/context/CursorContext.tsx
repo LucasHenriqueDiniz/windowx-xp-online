@@ -94,7 +94,7 @@ export function CursorProvider({ children }: { children: ReactNode }) {
       }
 
       // Update the cursor data in Firebase
-      const cursorRef = ref(database, `cursors/${userId}`);
+      const cursorRef = ref(database!, `cursors/${userId}`);
       set(cursorRef, {
         id: userId,
         displayName: name,
@@ -113,7 +113,7 @@ export function CursorProvider({ children }: { children: ReactNode }) {
     updatePendingRef.current = false;
     const now = Date.now();
 
-    const cursorRef = ref(database, `cursors/${userId}`);
+    const cursorRef = ref(database!, `cursors/${userId}`);
     set(cursorRef, {
       id: userId,
       displayName,
@@ -151,11 +151,11 @@ export function CursorProvider({ children }: { children: ReactNode }) {
     if (typeof window === "undefined") return;
 
     // Get reference to cursors in Firebase
-    const cursorsRef = ref(database, "cursors");
+    const cursorsRef = ref(database!, "cursors");
 
     // Set initial cursor position
     const initCursor = () => {
-      const cursorRef = ref(database, `cursors/${userId}`);
+      const cursorRef = ref(database!, `cursors/${userId}`);
       const initialData = {
         id: userId,
         displayName,
@@ -197,7 +197,7 @@ export function CursorProvider({ children }: { children: ReactNode }) {
     // Set up a separate heartbeat interval at a much lower frequency
     // This ensures user presence even when they're not moving the mouse
     heartbeatIntervalRef.current = setInterval(() => {
-      const cursorRef = ref(database, `cursors/${userId}`);
+      const cursorRef = ref(database!, `cursors/${userId}`);
       set(cursorRef, {
         id: userId,
         displayName,
@@ -216,7 +216,7 @@ export function CursorProvider({ children }: { children: ReactNode }) {
       unsubscribe();
 
       // Remove user cursor when disconnecting
-      const cursorRef = ref(database, `cursors/${userId}`);
+      const cursorRef = ref(database!, `cursors/${userId}`);
       remove(cursorRef);
     };
   }, [userId, displayName, cursorColor, sendCursorUpdate]);
