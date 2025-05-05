@@ -1,8 +1,30 @@
 {
   "rules": {
-    ".read": true,
-    ".write": true,
+    // Regras para desktop e system - apenas leitura pública, escrita com autenticação
+    "desktop": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "system": {
+      ".read": true,
+      ".write": true,
+      "programs": {
+        ".read": true,
+        ".write": true
+      },
+      "startMenu": {
+        ".read": true,
+        ".write": true
+      },
+      "programLaunches": {
+        ".read": true,
+        ".write": true
+      }
+    },
+    // Regras para cursores - mantenha indexação
     "cursors": {
+      ".read": true,
+      ".write": true,
       ".indexOn": ["lastActive"]
     }
   }
