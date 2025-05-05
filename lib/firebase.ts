@@ -1,23 +1,15 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getDatabase, Database } from "firebase/database";
 
-// Configuração condicional para evitar erros durante o build estático
-let firebaseConfig: {
-  apiKey?: string | undefined;
-  authDomain?: string | undefined;
-  databaseURL?: string | undefined;
-  projectId?: string | undefined;
-  storageBucket?: string | undefined;
-  messagingSenderId?: string | undefined;
-  appId?: string | undefined;
-} = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+// Default Firebase configuration
+const defaultConfig = {
+  apiKey: "AIzaSyBLkoD4AiCf41YERfkQdNFiAfYYDNCu7d4",
+  authDomain: "w-xp-online.firebaseapp.com",
+  databaseURL: "https://w-xp-online-default-rtdb.firebaseio.com",
+  projectId: "w-xp-online",
+  storageBucket: "w-xp-online.firebasestorage.app",
+  messagingSenderId: "623256255902",
+  appId: "1:623256255902:web:fc440dd8ed4798b6be6a8f",
 };
 
 // Initialize Firebase only on the client side or if not already initialized
@@ -28,22 +20,26 @@ let initializationError: string | null = null;
 // Verifica se está no navegador
 const isBrowser = typeof window !== "undefined";
 
+// Configuração do Firebase
+let firebaseConfig = defaultConfig;
+
 // Se estiver no navegador, tenta carregar a configuração do arquivo config.js
 if (isBrowser) {
-  // Verifica se o config global está disponível (definido em public/config.js)
-  // Usando tipo globalThis para evitar erro de tipagem
-  if (typeof window.firebaseConfig !== "undefined") {
-    console.log("Usando configuração do Firebase do arquivo config.js");
-    firebaseConfig = window.firebaseConfig;
+  try {
+    // Verifica se o config global está disponível (definido em public/config.js)
+    if (typeof window.firebaseConfig !== "undefined") {
+      console.log("Usando configuração do Firebase do arquivo config.js");
+      firebaseConfig = window.firebaseConfig;
+    } else {
+      console.log("Configuração do Firebase não encontrada no arquivo config.js, usando configuração padrão");
+    }
+  } catch (error) {
+    console.warn("Erro ao acessar window.firebaseConfig, usando configuração padrão", error);
   }
 }
 
-// Verifica se as variáveis essenciais estão definidas
-const hasRequiredConfig =
-  (firebaseConfig.databaseURL && firebaseConfig.projectId) || (process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL && process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
-
-// Só inicializa se estiver no navegador, tiver as configurações necessárias, e não estiver já inicializado
-if (isBrowser && hasRequiredConfig && !getApps().length) {
+// Só inicializa se estiver no navegador e não estiver já inicializado
+if (isBrowser && !getApps().length) {
   try {
     app = initializeApp(firebaseConfig);
     database = getDatabase(app);
@@ -52,8 +48,6 @@ if (isBrowser && hasRequiredConfig && !getApps().length) {
     console.error("Firebase initialization error:", error);
     initializationError = error instanceof Error ? error.message : "Erro desconhecido ao inicializar o Firebase";
   }
-} else if (isBrowser && !hasRequiredConfig) {
-  initializationError = "Configuração do Firebase incompleta. Verifique as variáveis de ambiente.";
 }
 
 // Function to check if database is available
