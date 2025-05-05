@@ -8,7 +8,16 @@ import { Display } from "../../../public/assets/icons";
 import { AVAILABLE_WALLPAPERS } from "../../../public/assets/wallpapers";
 import Window from "../Window";
 
-export default function DisplayProperties({ id, isActive, isMaximized, isMinimized, zIndex, position, size, props }: WindowPropertiesProps) {
+interface DisplayPropertiesProps extends WindowPropertiesProps {
+  props?: {
+    selectedWallpaper?: string | null;
+    selectedBackgroundColor?: string;
+    selectedTheme?: string;
+    wallpaperPosition?: "center" | "tile" | "stretch";
+  };
+}
+
+export default function DisplayProperties({ id, isActive, isMaximized, isMinimized, zIndex, position, size, props }: DisplayPropertiesProps) {
   const { wallpaper, setWallpaper, backgroundColor, setBackgroundColor, wallpaperPosition, setWallpaperPosition, updateProgramProps } = useDesktop();
   const [currentTab, setCurrentTab] = useState<"themes" | "desktop" | "screensaver" | "appearance" | "settings">("desktop");
   const [selectedTheme, setSelectedTheme] = useState("Windows XP");
