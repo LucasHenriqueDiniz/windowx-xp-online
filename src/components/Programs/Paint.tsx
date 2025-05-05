@@ -5,13 +5,20 @@ import { useEffect, useRef, useState } from "react";
 import { systemSounds, uiSounds } from "../../../public/assets/audio";
 import Window from "../Window";
 
-type PaintProps = WindowPropertiesProps;
-
 interface DrawAction {
   type: "draw" | "clear";
   points?: { x: number; y: number }[];
   color?: string;
   lineWidth?: number;
+}
+
+interface PaintProps extends WindowPropertiesProps {
+  props?: {
+    currentColor?: string;
+    lineWidth?: number;
+    currentTool?: "pencil" | "brush" | "eraser" | "line" | "rectangle" | "ellipse";
+    drawHistory?: DrawAction[];
+  };
 }
 
 export default function Paint({ id, isActive, isMaximized, isMinimized, zIndex, position, size, props }: PaintProps) {

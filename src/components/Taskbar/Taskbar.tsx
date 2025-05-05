@@ -22,7 +22,7 @@ export default function Taskbar({ className = "" }: TaskbarProps) {
   const [taskbarHeight, setTaskbarHeight] = useState(40); // Default taskbar height
   const [isTaskbarLocked, setIsTaskbarLocked] = useState(true); // Default locked
   const [isResizing, setIsResizing] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; visible: boolean }>({
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; visible: boolean; programs?: typeof programs; programType?: string }>({
     x: 0,
     y: 0,
     visible: false,
@@ -208,6 +208,19 @@ export default function Taskbar({ className = "" }: TaskbarProps) {
     });
   };
 
+  // Handle right-click on taskbar program button
+  const handleProgramContextMenu = (e: React.MouseEvent, programsOfType: typeof programs, programType: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      visible: true,
+      programs: programsOfType,
+      programType,
+    });
+  };
+
   // Handle locking/unlocking the taskbar
   const toggleTaskbarLock = () => {
     const newState = !isTaskbarLocked;
@@ -241,19 +254,15 @@ export default function Taskbar({ className = "" }: TaskbarProps) {
         <div className="flex items-center h-full flex-1">
           {/* Start Button - Using proper image */}
           <button
-            className={`h-full flex items-center justify-center pl-1 pr-2 ${
-              isStartMenuOpen
-                ? "bg-gradient-to-b from-[#5AA5E0] to-[#1668DA] shadow-inner"
-                : "bg-gradient-to-b from-[#379834] to-[#298130] hover:from-[#44A700] hover:to-[#318000] shadow"
-            } transition-colors rounded-tr-md rounded-br-md border-r border-t border-b border-[#2B592C] ${isStartMenuOpen ? "border-[#225DDF]" : ""}`}
+            className={`h-full flex items-center justify-center`}
             onClick={toggleStartMenu}
           >
             <Image
-              width={32}
-              height={32}
+              width={125}
+              height={35}
               src="/assets/taskbar/start.png"
               alt="Start"
-              className="h-8"
+              className="h-full hover:brightness-90 transition-all duration-200"
             />
           </button>
 
@@ -340,6 +349,7 @@ export default function Taskbar({ className = "" }: TaskbarProps) {
                     const programToActivate = programsOfType[0];
                     activateProgram(programToActivate.id);
                   }}
+                  onContextMenu={(e) => handleProgramContextMenu(e, programsOfType, type)}
                 >
                   <Image
                     width={16}
@@ -404,6 +414,8 @@ export default function Taskbar({ className = "" }: TaskbarProps) {
           x={contextMenu.x}
           y={contextMenu.y}
           isLocked={isTaskbarLocked}
+          programs={contextMenu.programs}
+          programType={contextMenu.programType}
           onToggleLock={toggleTaskbarLock}
           onClose={() => setContextMenu((prev) => ({ ...prev, visible: false }))}
         />

@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, lazy } from "react";
 import { database, isDatabaseAvailable } from "../../lib/firebase";
 import { ref, onValue, set } from "firebase/database";
 import { DefaultWallpaper } from "../../public/assets/wallpapers";
@@ -72,6 +72,32 @@ export const defaultIcons = [
   "my-network",
   "control-panel",
 ];
+
+// Lazy load program components
+const Calculator = lazy(() => import("@/components/Programs/Calculator"));
+const CommandPrompt = lazy(() => import("@/components/Programs/ErrorDialog"));
+const InternetExplorer = lazy(() => import("@/components/Programs/ErrorDialog"));
+const Minesweeper = lazy(() => import("@/components/Programs/ErrorDialog"));
+const Notepad = lazy(() => import("@/components/Programs/Notepad"));
+const Paint = lazy(() => import("@/components/Programs/Paint"));
+const Solitaire = lazy(() => import("@/components/Programs/ErrorDialog"));
+const SystemRestore = lazy(() => import("@/components/Programs/SystemRestore"));
+const WindowsExplorer = lazy(() => import("@/components/Programs/ErrorDialog"));
+
+// Map of program IDs to components
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const programComponentMap: Record<string, React.ComponentType<any>> = {
+  paint: Paint,
+  calculator: Calculator,
+  notepad: Notepad,
+  explorer: WindowsExplorer,
+  browser: InternetExplorer,
+  "internet-explorer": InternetExplorer,
+  cmd: CommandPrompt,
+  minesweeper: Minesweeper,
+  solitaire: Solitaire,
+  "system-restore": SystemRestore,
+};
 
 // Provider component
 export function DesktopProvider({ children }: { children: ReactNode }) {
@@ -249,6 +275,24 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
       return null;
     }
 
+    // Check if the program type is valid
+    const validProgramTypes = [
+      // "explorer",
+      "browser",
+      "notepad",
+      "calculator",
+      // "control-panel",
+      "display-properties",
+      "error-dialog",
+      "system-restore",
+      "paint",
+    ];
+
+    if (!validProgramTypes.includes(programType)) {
+      showErrorWindow(`Cannot open "${programType}". The specified program is not found or not supported.`);
+      return null;
+    }
+
     const programId = `${programType}-${Date.now()}`;
 
     // Use provided globalId from props if available (for multiplayer sync)
@@ -297,6 +341,10 @@ export function DesktopProvider({ children }: { children: ReactNode }) {
       case "system-restore":
         title = "System Restore";
         icon = Icons.SystemRestore.src;
+        break;
+      case "paint":
+        title = "Paint";
+        icon = Icons.Paint.src;
         break;
     }
 

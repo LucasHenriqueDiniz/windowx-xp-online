@@ -5,6 +5,7 @@ import DisplayProperties from "../Programs/DisplayProperties";
 import Paint from "../Programs/Paint";
 import ErrorDialog from "../Programs/ErrorDialog";
 import SystemRestore from "../Programs/SystemRestore";
+import Notepad from "../Programs/Notepad";
 
 export default function ProgramManager() {
   const { programs } = useDesktop();
@@ -25,7 +26,6 @@ export default function ProgramManager() {
                 zIndex={program.zIndex}
                 position={program.position}
                 size={program.size}
-                props={program.props || {}}
               />
             );
 
@@ -40,13 +40,27 @@ export default function ProgramManager() {
                 zIndex={program.zIndex}
                 position={program.position}
                 size={program.size}
-                props={program.props || {}}
               />
             );
 
           case "paint":
             return (
               <Paint
+                key={program.id}
+                id={program.id}
+                isActive={program.zIndex === Math.max(...programs.map((p) => p.zIndex))}
+                isMaximized={program.isMaximized || false}
+                isMinimized={program.isMinimized || false}
+                zIndex={program.zIndex}
+                position={program.position}
+                size={program.size}
+                props={program.props || {}}
+              />
+            );
+
+          case "notepad":
+            return (
+              <Notepad
                 key={program.id}
                 id={program.id}
                 isActive={program.zIndex === Math.max(...programs.map((p) => p.zIndex))}
@@ -70,12 +84,6 @@ export default function ProgramManager() {
                 zIndex={program.zIndex}
                 position={program.position}
                 size={program.size}
-                props={program.props || {}}
-                onClose={() => {
-                  if (program.props?.onClose) {
-                    program.props.onClose();
-                  }
-                }}
               />
             );
 
@@ -86,12 +94,11 @@ export default function ProgramManager() {
                 id={program.id}
                 message={program.props?.message || "An error has occurred."}
                 title={program.props?.title || "Error"}
-                icon={program.props?.icon || "/assets/icons/Windows XP Error.png"}
-                onClose={() => {
-                  if (program.props?.onClose) {
-                    program.props.onClose();
-                  }
-                }}
+                icon={program.props?.icon || ErrorDialog}
+                isActive={program.zIndex === Math.max(...programs.map((p) => p.zIndex))}
+                isMaximized={program.isMaximized || false}
+                isMinimized={program.isMinimized || false}
+                zIndex={program.zIndex}
               />
             );
 

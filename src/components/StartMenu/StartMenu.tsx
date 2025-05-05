@@ -192,7 +192,7 @@ export default function StartMenu({ isOpen, onClose }: StartMenuProps) {
     <>
       <div
         ref={menuRef}
-        className="absolute left-0 bottom-10 w-[400px] bg-gradient-to-b from-[#095BDC] to-[#0048CA] rounded-tr-md overflow-hidden shadow-xl flex flex-col z-50"
+        className="absolute text-black left-0 bottom-10 w-[400px] bg-gradient-to-b from-[#095BDC] to-[#0048CA] rounded-tr-md overflow-hidden shadow-xl flex flex-col z-50"
         style={{
           borderTop: "1px solid #3B9BFF",
           borderRight: "1px solid #3B9BFF",

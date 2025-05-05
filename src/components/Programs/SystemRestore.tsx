@@ -1,5 +1,5 @@
 "use client";
-import { defaultIcons } from "@/context/DesktopContext";
+import { WindowPropertiesProps } from "@/types/window-properties";
 import { ref, set } from "firebase/database";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
@@ -7,23 +7,10 @@ import { database } from "../../../lib/firebase";
 import { systemSounds } from "../../../public/assets/audio";
 import * as Icons from "../../../public/assets/icons";
 import { DefaultWallpaper } from "../../../public/assets/wallpapers";
-import Window from "../Window/Window";
+import Window from "../Window";
+import { defaultIcons } from "@/context/DesktopContext";
 
-interface SystemRestoreProps {
-  id: string;
-  isActive: boolean;
-  isMaximized: boolean;
-  isMinimized: boolean;
-  zIndex: number;
-  position?: { x: number; y: number };
-  size?: { width: number; height: number };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  props?: Record<string, any>;
-  onClose: () => void;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function SystemRestore({ id, isActive, isMaximized, isMinimized, zIndex, position, size, props, onClose }: SystemRestoreProps) {
+export default function SystemRestore({ id, isActive, isMaximized, isMinimized, zIndex, position, size }: WindowPropertiesProps) {
   const [isConfirming, setIsConfirming] = useState(false);
   const [isShuttingDown, setIsShuttingDown] = useState(false);
   const [isBooting, setIsBooting] = useState(false);
@@ -123,7 +110,7 @@ export default function SystemRestore({ id, isActive, isMaximized, isMinimized, 
               clearInterval(bootInterval);
               setTimeout(() => {
                 setIsBooting(false);
-                onClose(); // Close the system restore window
+                // Não precisamos mais chamar onClose aqui, o componente Window lidará com isso
               }, 1000);
               return 100;
             }
@@ -256,11 +243,11 @@ export default function SystemRestore({ id, isActive, isMaximized, isMinimized, 
       isMaximized={isMaximized}
       isMinimized={isMinimized}
       zIndex={zIndex}
-      position={position}
-      size={size || { width: 500, height: 400 }}
-      onClose={onClose}
-      showMinimize={true}
-      showMaximize={false}
+      initialPosition={position || { x: 100, y: 100 }}
+      initialSize={size || { width: 500, height: 400 }}
+      minWidth={400}
+      minHeight={300}
+      resizable={true}
     >
       {content}
     </Window>
