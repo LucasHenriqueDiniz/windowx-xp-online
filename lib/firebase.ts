@@ -1,8 +1,20 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { initializeApp, getApps } from "firebase/app";
 import { getDatabase, Database } from "firebase/database";
 
+// Define Firebase configuration interface with required fields
+interface FirebaseConfig {
+  apiKey: string;
+  authDomain: string;
+  databaseURL: string;
+  projectId: string;
+  storageBucket: string;
+  messagingSenderId: string;
+  appId: string;
+}
+
 // Default Firebase configuration
-const defaultConfig = {
+const defaultConfig: FirebaseConfig = {
   apiKey: "AIzaSyBLkoD4AiCf41YERfkQdNFiAfYYDNCu7d4",
   authDomain: "w-xp-online.firebaseapp.com",
   databaseURL: "https://w-xp-online-default-rtdb.firebaseio.com",
@@ -21,15 +33,26 @@ let initializationError: string | null = null;
 const isBrowser = typeof window !== "undefined";
 
 // Configuração do Firebase
-let firebaseConfig = defaultConfig;
+let firebaseConfig: FirebaseConfig = defaultConfig;
+
+// Function to validate if a config has all required Firebase fields
+const isValidFirebaseConfig = (config: Record<string, any>): config is FirebaseConfig => {
+  const requiredFields = ["apiKey", "authDomain", "databaseURL", "projectId", "storageBucket", "messagingSenderId", "appId"];
+
+  return requiredFields.every((field) => typeof config[field] === "string" && config[field].trim() !== "");
+};
 
 // Se estiver no navegador, tenta carregar a configuração do arquivo config.js
 if (isBrowser) {
   try {
     // Verifica se o config global está disponível (definido em public/config.js)
     if (typeof window.firebaseConfig !== "undefined") {
-      console.log("Usando configuração do Firebase do arquivo config.js");
-      firebaseConfig = window.firebaseConfig;
+      if (isValidFirebaseConfig(window.firebaseConfig)) {
+        console.log("Usando configuração do Firebase do arquivo config.js");
+        firebaseConfig = window.firebaseConfig;
+      } else {
+        console.warn("Configuração do Firebase no config.js está incompleta, usando configuração padrão");
+      }
     } else {
       console.log("Configuração do Firebase não encontrada no arquivo config.js, usando configuração padrão");
     }
