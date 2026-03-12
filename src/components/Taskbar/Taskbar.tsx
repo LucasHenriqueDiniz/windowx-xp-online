@@ -8,129 +8,103 @@ import StartMenu from "./StartMenu";
 const getTime = () => {
   const date = new Date();
   let hour = date.getHours();
-  let hourPostFix = 'AM';
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  hour = hour % 12;
+  hour = hour ? hour : 12; // the hour '0' should be '12'
   let min: string | number = date.getMinutes();
-  if (hour >= 12) {
-    hour -= 12;
-    hourPostFix = 'PM';
-  }
-  if (hour === 0) {
-    hour = 12;
-  }
-  if (min < 10) {
-    min = '0' + min;
-  }
-  return `${hour}:${min} ${hourPostFix}`;
+  min = min < 10 ? '0' + min : min;
+  return `${hour}:${min} ${ampm}`;
 };
 
 export default function Taskbar() {
   const [time, setTime] = useState(getTime);
-  const [menuOn, setMenuOn] = useState(false);
-  const menuRef = useRef(null);
-  const startButtonRef = useRef(null);
+  const [isMenuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const startButtonRef = useRef<HTMLImageElement>(null);
   const { desktopState, focusProgram, minimizeProgram, unFocus } = useDesktop();
   const { programs, focused_program_id } = desktopState;
 
-  function toggleMenu() {
-    setMenuOn(on => !on);
-  }
-
   useEffect(() => {
-    const timer = setInterval(() => {
-      const newTime = getTime();
-      newTime !== time && setTime(newTime);
-    }, 1000);
+    const timer = setInterval(() => setTime(getTime()), 1000);
     return () => clearInterval(timer);
-  }, [time]);
+  }, []);
 
   useEffect(() => {
-    function onMouseDown(e: MouseEvent) {
-        if (
-            menuOn &&
-            menuRef.current &&
-            !(menuRef.current as any).contains(e.target) &&
-            startButtonRef.current &&
-            !(startButtonRef.current as any).contains(e.target)
-        ) {
-            setMenuOn(false);
-        }
-    }
-    window.addEventListener('mousedown', onMouseDown);
-    return () => window.removeEventListener('mousedown', onMouseDown);
-}, [menuOn]);
+    const handleMouseDown = (event: MouseEvent) => {
+      if (
+        isMenuOpen &&
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        startButtonRef.current &&
+        !startButtonRef.current.contains(event.target as Node)
+      ) {
+        setMenuOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', handleMouseDown);
+    return () => window.removeEventListener('mousedown', handleMouseDown);
+  }, [isMenuOpen]);
 
-  const onMouseDownApp = (id: string) => {
+  const handleAppClick = (id: string) => {
     if (focused_program_id === id) {
-        minimizeProgram(id);
+      minimizeProgram(id);
     } else {
-        focusProgram(id);
+      focusProgram(id);
     }
-  }
-
-  const onMouseDownTaskbar = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('.taskbar__window')) return;
-    unFocus();
-  }
+  };
 
   return (
-    <div className="taskbar" onMouseDown={onMouseDownTaskbar}>
-      <div className="taskbar__left">
-        <div ref={menuRef} className="taskbar__start-menu-container">
-            {menuOn && <StartMenu onClose={toggleMenu} />}
-        </div>
-
-        <div ref={startButtonRef} className="taskbar__start-button-wrapper" onMouseDown={toggleMenu}>
-            <Image
-                src="/assets/windowsIcons/start.png"
-                alt="start"
-                width={100}
-                height={30}
-                className={`taskbar__start-button ${menuOn ? 'clicked' : ''}`}
-            />
-        </div>
-
-        <div className="taskbar__windows">
-            {programs.map(app => (
+    <div className="taskbar" onMouseDown={() => unFocus()}>
+      <div ref={menuRef} className="start-menu-wrapper">
+        {isMenuOpen && <StartMenu onClose={() => setMenuOpen(false)} />}
+      </div>
+      
+      <div className="taskbar-left">
+        <img
+          ref={startButtonRef}
+          src="/assets/windowsIcons/start.png"
+          alt="start"
+          className="start-button"
+          onClick={() => setMenuOpen(!isMenuOpen)}
+        />
+        <div className="taskbar-windows">
+          {programs.map(app => (
             <TaskbarWindow
-                key={app.id}
-                id={app.id}
-                icon={app.icon}
-                title={app.title}
-                onMouseDown={onMouseDownApp}
-                isFocus={focused_program_id === app.id}
+              key={app.id}
+              {...app}
+              onClick={handleAppClick}
+              isFocused={focused_program_id === app.id}
             />
-            ))}
+          ))}
         </div>
       </div>
 
-      <div className="taskbar__right">
-        <Image className="taskbar__icon" src="/assets/windowsIcons/690(16x16).png" alt="" width={16} height={16} />
-        <Image className="taskbar__icon" src="/assets/windowsIcons/394(16x16).png" alt="" width={16} height={16} />
-        <Image className="taskbar__icon" src="/assets/windowsIcons/229(16x16).png" alt="" width={16} height={16} />
-        <div className="taskbar__time">{time}</div>
+      <div className="taskbar-right">
+        <Image src="/assets/windowsIcons/690(16x16).png" alt="" width={16} height={16} />
+        <Image src="/assets/windowsIcons/394(16x16).png" alt="" width={16} height={16} />
+        <Image src="/assets/windowsIcons/229(16x16).png" alt="" width={16} height={16} />
+        <div className="time">{time}</div>
       </div>
     </div>
   );
 }
 
 interface TaskbarWindowProps {
-    id: string;
-    icon: string;
-    title: string;
-    onMouseDown: (id: string) => void;
-    isFocus: boolean;
+  id: string;
+  icon: string;
+  title: string;
+  onClick: (id: string) => void;
+  isFocused: boolean;
 }
 
-function TaskbarWindow({ id, icon, title, onMouseDown, isFocus }: TaskbarWindowProps) {
-  function _onMouseDown() {
-    onMouseDown(id);
-  }
+function TaskbarWindow({ id, icon, title, onClick, isFocused }: TaskbarWindowProps) {
   return (
     <div
-      onMouseDown={_onMouseDown}
-      className={`taskbar__window ${isFocus ? 'focus' : 'cover'}`}>
-      <Image className="taskbar__window-icon" src={icon} alt={title} width={16} height={16} />
-      <div className="taskbar__window-text">{title}</div>
+      onClick={(e) => { e.stopPropagation(); onClick(id); }}
+      onMouseDown={(e) => e.stopPropagation()}
+      className={`taskbar-window ${isFocused ? 'focused' : ''}`}>
+      <Image src={icon} alt={title} width={16} height={16} />
+      <span className="taskbar-window-text">{title}</span>
     </div>
   );
 }
