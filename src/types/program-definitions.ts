@@ -1,32 +1,30 @@
-// Program definitions for Windows XP-style applications
-export interface ProgramDefinition {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  program: string;
-  category?: string;
-  fileSize?: string;
-  fileType?: string;
-  dateModified?: string;
-  isSystem?: boolean;
-}
+import { ProgramDefinition } from "@/types";
 
-export interface ProgramFolder {
-  id: string;
-  name: string;
-  icon: string;
-  items: (string | ProgramFolder)[]; // Can contain program IDs or nested folders
-}
+export const programDefinitions: { [key: string]: ProgramDefinition } = {
+  paint: {
+    id: "paint",
+    name: "Paint",
+    icon: "/assets/windowsIcons/680(16x16).png",
+    desktopIcon: "/assets/windowsIcons/680(32x32).png",
+    defaultSize: { width: 500, height: 400 },
+    isPinned: true,
+  },
+  notepad: {
+    id: "notepad",
+    name: "Bloco de Notas",
+    icon: "/assets/windowsIcons/327(16x16).png",
+    desktopIcon: "/assets/windowsIcons/327(32x32).png",
+    defaultSize: { width: 500, height: 400 },
+    isPinned: true,
+  },
+  pinball: {
+    id: "pinball",
+    name: "3D Pinball",
+    icon: "/assets/pinball/Icon_16x16.png",
+    desktopIcon: "/assets/pinball/Icon_32x32.png",
+    defaultSize: { width: 600, height: 420 },
+    isPinned: true,
+  },
+};
 
-// Represents a user's pinned and recent programs in Start Menu
-export interface UserProgramSettings {
-  pinnedPrograms: string[]; // Array of program IDs
-  recentPrograms: string[]; // Array of recently used program IDs
-}
-
-// Represents the tree structure of the All Programs menu
-export interface ProgramsMenuStructure {
-  folders: ProgramFolder[];
-  items: string[]; // Top-level program IDs
-}
+export type ProgramId = keyof typeof programDefinitions;

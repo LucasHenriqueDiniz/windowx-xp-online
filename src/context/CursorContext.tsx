@@ -2,7 +2,7 @@
 import { limitToLast, onValue, orderByChild, query, ref, remove, set, onDisconnect } from "firebase/database";
 import { createContext, ReactNode, useContext, useEffect, useState, useRef, useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { database } from "../../lib/firebase";
+import { database } from "@/lib/firebase";
 
 // Maximum number of users to prevent performance issues
 const MAX_USERS = 10;

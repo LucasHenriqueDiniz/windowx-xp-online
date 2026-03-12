@@ -1,6 +1,7 @@
+
 "use client";
 import { useState } from "react";
-import Window from "../Window";
+import Window from "@/components/Window/Window";
 import { WindowPropertiesProps } from "@/types/window-properties";
 
 export default function Calculator({ id, isActive, isMaximized, isMinimized, zIndex, position, size }: WindowPropertiesProps) {
@@ -11,6 +12,7 @@ export default function Calculator({ id, isActive, isMaximized, isMinimized, zIn
   const [resetOnNextInput, setResetOnNextInput] = useState(false);
 
   const handleNumberClick = (num: string) => {
+    if (display.length >= 16) return; // Limit display length
     if (display === "0" || resetOnNextInput) {
       setDisplay(num);
       setResetOnNextInput(false);
@@ -30,41 +32,33 @@ export default function Calculator({ id, isActive, isMaximized, isMinimized, zIn
 
   const handleOperationClick = (op: string) => {
     const currentValue = parseFloat(display);
-
-    if (prevValue === null) {
-      setPrevValue(currentValue);
-    } else if (operation) {
-      const result = calculate(prevValue, currentValue, operation);
-      setPrevValue(result);
-      setDisplay(String(result));
+    if (prevValue !== null && operation) {
+        const result = calculate(prevValue, currentValue, operation);
+        setDisplay(String(result));
+        setPrevValue(result);
+    } else {
+        setPrevValue(currentValue);
     }
-
     setOperation(op);
     setResetOnNextInput(true);
   };
 
   const calculate = (a: number, b: number, op: string): number => {
     switch (op) {
-      case "+":
-        return a + b;
-      case "-":
-        return a - b;
-      case "×":
-        return a * b;
-      case "÷":
-        return a / b;
-      default:
-        return b;
+      case "+": return a + b;
+      case "-": return a - b;
+      case "*": return a * b;
+      case "/": return b === 0 ? Infinity : a / b;
+      default: return b;
     }
   };
 
   const handleEquals = () => {
     if (prevValue === null || operation === null) return;
-
     const currentValue = parseFloat(display);
     const result = calculate(prevValue, currentValue, operation);
     setDisplay(String(result));
-    setPrevValue(null);
+    setPrevValue(result); // The result becomes the new prevValue for subsequent operations
     setOperation(null);
     setResetOnNextInput(true);
   };
@@ -82,87 +76,39 @@ export default function Calculator({ id, isActive, isMaximized, isMinimized, zIn
   };
 
   const handleBackspace = () => {
-    if (display.length === 1 || (display.length === 2 && display.startsWith("-"))) {
+    if (resetOnNextInput) {
       setDisplay("0");
-    } else {
-      setDisplay(display.slice(0, -1));
-    }
-  };
-
-  const handleMemoryStore = () => {
-    setMemory(parseFloat(display));
-  };
-
-  const handleMemoryRecall = () => {
-    if (memory !== null) {
-      setDisplay(String(memory));
       setResetOnNextInput(false);
+      return;
     }
+    setDisplay(display.length > 1 ? display.slice(0, -1) : "0");
   };
 
-  const handleMemoryClear = () => {
-    setMemory(null);
-  };
+  const handleMemoryStore = () => setMemory(parseFloat(display));
+  const handleMemoryRecall = () => memory !== null && setDisplay(String(memory));
+  const handleMemoryClear = () => setMemory(null);
+  const handleMemoryAdd = () => setMemory((mem) => (mem || 0) + parseFloat(display));
+  const handleMemorySubtract = () => setMemory((mem) => (mem || 0) - parseFloat(display));
 
-  const handleMemoryAdd = () => {
-    if (memory !== null) {
-      setMemory(memory + parseFloat(display));
-    } else {
-      setMemory(parseFloat(display));
-    }
-  };
-
-  const handleMemorySubtract = () => {
-    if (memory !== null) {
-      setMemory(memory - parseFloat(display));
-    } else {
-      setMemory(-parseFloat(display));
-    }
-  };
-
-  const handlePlusMinusToggle = () => {
-    if (display !== "0") {
-      if (display.startsWith("-")) {
-        setDisplay(display.substring(1));
-      } else {
-        setDisplay("-" + display);
-      }
-    }
-  };
-
-  const handleSquareRoot = () => {
-    const value = parseFloat(display);
-    if (value >= 0) {
-      const result = Math.sqrt(value);
-      setDisplay(String(result));
-      setResetOnNextInput(true);
-    }
-  };
-
+  const handlePlusMinusToggle = () => setDisplay((d) => d.startsWith("-") ? d.substring(1) : "-" + d);
+  const handleSquareRoot = () => setDisplay(String(Math.sqrt(parseFloat(display))));
   const handlePercentage = () => {
-    if (prevValue !== null) {
-      const result = (parseFloat(display) / 100) * prevValue;
-      setDisplay(String(result));
-    } else {
-      const result = parseFloat(display) / 100;
-      setDisplay(String(result));
-    }
+      if (prevValue !== null) {
+        const percentageValue = (parseFloat(display) / 100) * prevValue;
+        setDisplay(String(percentageValue));
+      }
   };
+  const handleInverse = () => setDisplay(String(1 / parseFloat(display)));
 
-  const handleInverse = () => {
-    const value = parseFloat(display);
-    if (value !== 0) {
-      const result = 1 / value;
-      setDisplay(String(result));
-      setResetOnNextInput(true);
-    }
-  };
-
-  // Calculator button styles
-  const numButtonClass = "border border-gray-400 bg-white hover:bg-gray-100 active:bg-gray-200 py-1";
-  const opButtonClass = "border border-gray-400 bg-[#ECE9D8] hover:bg-gray-100 active:bg-gray-200 py-1";
-  const memButtonClass = "border border-gray-400 bg-[#ECE9D8] hover:bg-gray-100 active:bg-gray-200 py-1 text-xs";
-  const equalButtonClass = "border border-gray-400 bg-[#B8C7E0] hover:bg-[#A1B4D4] active:bg-[#8CA1C8] py-1";
+  const Button = ({ onClick, children, className, title }: { onClick: () => void, children: React.ReactNode, className?: string, title?: string }) => (
+    <button 
+      onClick={onClick} 
+      className={`h-7 w-11/12 justify-self-center self-center border-t border-l border-b-2 border-r-2 border-gray-100 bg-[#E1E1E1] text-black focus:outline-none active:border-t-2 active:border-l-2 active:border-b active:border-r active:border-gray-800 ${className}`}
+      title={title}
+    >
+      {children}
+    </button>
+  );
 
   return (
     <Window
@@ -173,229 +119,83 @@ export default function Calculator({ id, isActive, isMaximized, isMinimized, zIn
       isMaximized={isMaximized}
       isMinimized={isMinimized}
       zIndex={zIndex}
-      initialPosition={position || { x: 100, y: 100 }}
-      initialSize={size || { width: 220, height: 300 }}
-      minWidth={220}
-      minHeight={300}
+      initialPosition={position || { x: 150, y: 150 }}
+      initialSize={size || { width: 260, height: 250 }}
+      minWidth={260}
+      minHeight={250}
       resizable={false}
     >
-      <div className="flex flex-col h-full bg-[#ECE9D8] p-1">
-        {/* Menu Bar */}
-        <div className="mb-2 text-xs">
-          <div className="flex">
-            <button className="px-2 py-0.5 hover:bg-[#B8C7E0]">View</button>
-            <button className="px-2 py-0.5 hover:bg-[#B8C7E0]">Edit</button>
-            <button className="px-2 py-0.5 hover:bg-[#B8C7E0]">Help</button>
-          </div>
+      <div className="flex flex-col h-full bg-[#D4D0C8] p-1.5 font-sans">
+        {/* Menu Bar - Simplified for XP look */}
+        <div className="text-xs flex mb-1.5">
+            <p className="px-2 hover:bg-blue-600 hover:text-white">View</p>
+            <p className="px-2 hover:bg-blue-600 hover:text-white">Edit</p>
+            <p className="px-2 hover:bg-blue-600 hover:text-white">Help</p>
         </div>
 
         {/* Display */}
-        <div className="p-1 mb-2">
-          <div className="bg-white border border-gray-400 p-1 text-right h-8 flex items-center justify-end">
-            <span className="text-lg font-mono">{display}</span>
-          </div>
+        <div className="bg-white border-2 border-gray-500 p-1 text-right h-10 flex items-center justify-end mb-2 shadow-inner-custom">
+          <span className="text-2xl font-mono tracking-wide">{display}</span>
         </div>
 
         {/* Calculator Buttons */}
-        <div className="grid grid-cols-6 gap-1 flex-grow">
-          {/* Row 1 - Memory Buttons */}
-          <button
-            className={memButtonClass}
-            onClick={handleMemoryClear}
-            title="Memory Clear"
-          >
-            MC
-          </button>
-          <button
-            className={memButtonClass}
-            onClick={handleMemoryRecall}
-            title="Memory Recall"
-          >
-            MR
-          </button>
-          <button
-            className={memButtonClass}
-            onClick={handleMemoryStore}
-            title="Memory Store"
-          >
-            MS
-          </button>
-          <button
-            className={memButtonClass}
-            onClick={handleMemoryAdd}
-            title="Memory Add"
-          >
-            M+
-          </button>
-          <button
-            className={memButtonClass}
-            onClick={handleMemorySubtract}
-            title="Memory Subtract"
-          >
-            M-
-          </button>
-          <button
-            className={opButtonClass}
-            onClick={handleBackspace}
-            title="Backspace"
-          >
-            ←
-          </button>
+        <div className="grid grid-cols-5 grid-rows-4 gap-y-1.5 gap-x-2 flex-grow">
+          {/* Memory buttons */}
+          <Button onClick={handleMemoryClear} className="text-red-600">MC</Button>
+          <Button onClick={handleMemoryRecall} className="text-red-600">MR</Button>
+          <Button onClick={handleMemoryStore} className="text-red-600">MS</Button>
+          <Button onClick={handleMemoryAdd} className="text-red-600">M+</Button>
+          <Button onClick={handleMemorySubtract} className="text-red-600">M-</Button>
+
           {/* Row 2 */}
-          <button
-            className={opButtonClass}
-            onClick={handleClearEntry}
-            title="Clear Entry"
-          >
-            CE
-          </button>
-          <button
-            className={opButtonClass}
-            onClick={handleClear}
-            title="Clear All"
-          >
-            C
-          </button>
-          <button
-            className={opButtonClass}
-            onClick={handlePlusMinusToggle}
-            title="Change Sign"
-          >
-            ±
-          </button>
-          <button
-            className={opButtonClass}
-            onClick={handleSquareRoot}
-            title="Square Root"
-          >
-            √
-          </button>
-          <button
-            className={opButtonClass}
-            onClick={() => handleOperationClick("÷")}
-            title="Divide"
-          >
-            ÷
-          </button>
-          <button
-            className={opButtonClass}
-            onClick={handlePercentage}
-            title="Percentage"
-          >
-            %
-          </button>
-          {/* Row 3 */}
-          <button
-            className={numButtonClass}
-            onClick={() => handleNumberClick("7")}
-          >
-            7
-          </button>
-          <button
-            className={numButtonClass}
-            onClick={() => handleNumberClick("8")}
-          >
-            8
-          </button>
-          <button
-            className={numButtonClass}
-            onClick={() => handleNumberClick("9")}
-          >
-            9
-          </button>
-          <button
-            className={opButtonClass}
-            onClick={() => handleOperationClick("×")}
-            title="Multiply"
-          >
-            ×
-          </button>
-          <button
-            className={opButtonClass}
-            onClick={handleInverse}
-            title="Inverse"
-          >
-            1/x
-          </button>
-          <div></div> {/* Empty cell for layout */}
-          {/* Row 4 */}
-          <button
-            className={numButtonClass}
-            onClick={() => handleNumberClick("4")}
-          >
-            4
-          </button>
-          <button
-            className={numButtonClass}
-            onClick={() => handleNumberClick("5")}
-          >
-            5
-          </button>
-          <button
-            className={numButtonClass}
-            onClick={() => handleNumberClick("6")}
-          >
-            6
-          </button>
-          <button
-            className={opButtonClass}
-            onClick={() => handleOperationClick("-")}
-            title="Subtract"
-          >
-            -
-          </button>
-          <div></div> {/* Empty cell for layout */}
-          <div></div> {/* Empty cell for layout */}
-          {/* Row 5 */}
-          <button
-            className={numButtonClass}
-            onClick={() => handleNumberClick("1")}
-          >
-            1
-          </button>
-          <button
-            className={numButtonClass}
-            onClick={() => handleNumberClick("2")}
-          >
-            2
-          </button>
-          <button
-            className={numButtonClass}
-            onClick={() => handleNumberClick("3")}
-          >
-            3
-          </button>
-          <button
-            className={opButtonClass}
-            onClick={() => handleOperationClick("+")}
-            title="Add"
-          >
-            +
-          </button>
-          <div></div> {/* Empty cell for layout */}
-          <div></div> {/* Empty cell for layout */}
-          {/* Row 6 */}
-          <button
-            className={`${numButtonClass} col-span-2`}
-            onClick={() => handleNumberClick("0")}
-          >
-            0
-          </button>
-          <button
-            className={numButtonClass}
-            onClick={handleDecimalClick}
-            title="Decimal Point"
-          >
-            .
-          </button>
-          <button
-            className={`${equalButtonClass} col-span-2`}
-            onClick={handleEquals}
-            title="Equals"
-          >
-            =
-          </button>
-          <div></div> {/* Empty cell for layout */}
+          <Button onClick={handleBackspace} className="text-red-600">←</Button>
+          <Button onClick={handleClearEntry} className="text-red-600">CE</Button>
+          <Button onClick={handleClear} className="text-red-600">C</Button>
+          <Button onClick={handlePlusMinusToggle} className="text-red-600">±</Button>
+          <Button onClick={handleSquareRoot} className="text-red-600">√</Button>
+          
+          {/* Row 3 - Numbers & Operators */}
+          <Button onClick={() => handleNumberClick("7")} className="text-blue-700 font-semibold">7</Button>
+          <Button onClick={() => handleNumberClick("8")} className="text-blue-700 font-semibold">8</Button>
+          <Button onClick={() => handleNumberClick("9")} className="text-blue-700 font-semibold">9</Button>
+          <Button onClick={() => handleOperationClick("/")} className="text-red-600">/</Button>
+          <Button onClick={handlePercentage} className="text-blue-700">%</Button>
+
+          {/* Row 4 - Numbers & Operators */}
+          <Button onClick={() => handleNumberClick("4")} className="text-blue-700 font-semibold">4</Button>
+          <Button onClick={() => handleNumberClick("5")} className="text-blue-700 font-semibold">5</Button>
+          <Button onClick={() => handleNumberClick("6")} className="text-blue-700 font-semibold">6</Button>
+          <Button onClick={() => handleOperationClick("*")} className="text-red-600">*</Button>
+          <Button onClick={handleInverse} className="text-blue-700">1/x</Button>
+
+          {/* Row 5 - Numbers & Operators */}
+          <div className="grid grid-cols-subgrid col-span-5">
+            <div className="col-start-1 col-span-3 grid grid-cols-3 gap-x-2">
+              <Button onClick={() => handleNumberClick("1")} className="text-blue-700 font-semibold">1</Button>
+              <Button onClick={() => handleNumberClick("2")} className="text-blue-700 font-semibold">2</Button>
+              <Button onClick={() => handleNumberClick("3")} className="text-blue-700 font-semibold">3</Button>
+            </div>
+            <div className="col-start-4 col-span-1">
+               <Button onClick={() => handleOperationClick("-")} className="text-red-600">-</Button>
+            </div>
+            <div className="row-span-2 col-start-5 col-span-1">
+                <Button onClick={handleEquals} className="text-red-600 h-full">=</Button>
+            </div>
+          </div>
+
+           {/* Row 6 - Numbers & Operators */}
+          <div className="grid grid-cols-subgrid col-span-5">
+            <div className="col-start-1 col-span-2">
+                <Button onClick={() => handleNumberClick("0")} className="text-blue-700 font-semibold w-full">0</Button>
+            </div>
+            <div className="col-start-3 col-span-1">
+              <Button onClick={handleDecimalClick} className="text-blue-700 font-semibold">.</Button>
+            </div>
+             <div className="col-start-4 col-span-1">
+               <Button onClick={() => handleOperationClick("+")} className="text-red-600">+</Button>
+            </div>
+          </div>
+
         </div>
       </div>
     </Window>

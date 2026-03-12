@@ -1,112 +1,57 @@
 "use client";
 import { useDesktop } from "@/context/DesktopContext";
-import Calculator from "../Programs/Calculator";
-import DisplayProperties from "../Programs/DisplayProperties";
-import Paint from "../Programs/Paint";
-import ErrorDialog from "../Programs/ErrorDialog";
-import SystemRestore from "../Programs/SystemRestore";
-import Notepad from "../Programs/Notepad";
+import { programComponentMap } from "@/lib/program-library";
+import { Suspense } from "react";
 
 export default function ProgramManager() {
-  const { programs } = useDesktop();
+  const { desktopState } = useDesktop();
+  const { programs } = desktopState;
+
+  // Find the highest z-index to determine which window is active
+  const maxZIndex = programs.length > 0 ? Math.max(...programs.map((p) => p.zIndex)) : 0;
 
   return (
     <>
       {programs.map((program) => {
-        // Based on program type, render the appropriate component
-        switch (program.type) {
-          case "calculator":
-            return (
-              <Calculator
-                key={program.id}
-                id={program.id}
-                isActive={program.zIndex === Math.max(...programs.map((p) => p.zIndex))}
-                isMaximized={program.isMaximized || false}
-                isMinimized={program.isMinimized || false}
-                zIndex={program.zIndex}
-                position={program.position}
-                size={program.size}
-              />
-            );
+        // Dynamically get the component from the map
+        const ProgramComponent = programComponentMap[program.type];
 
-          case "display-properties":
-            return (
-              <DisplayProperties
-                key={program.id}
-                id={program.id}
-                isActive={program.zIndex === Math.max(...programs.map((p) => p.zIndex))}
-                isMaximized={program.isMaximized || false}
-                isMinimized={program.isMinimized || false}
-                zIndex={program.zIndex}
-                position={program.position}
-                size={program.size}
-              />
-            );
-
-          case "paint":
-            return (
-              <Paint
-                key={program.id}
-                id={program.id}
-                isActive={program.zIndex === Math.max(...programs.map((p) => p.zIndex))}
-                isMaximized={program.isMaximized || false}
-                isMinimized={program.isMinimized || false}
-                zIndex={program.zIndex}
-                position={program.position}
-                size={program.size}
-                props={program.props || {}}
-              />
-            );
-
-          case "notepad":
-            return (
-              <Notepad
-                key={program.id}
-                id={program.id}
-                isActive={program.zIndex === Math.max(...programs.map((p) => p.zIndex))}
-                isMaximized={program.isMaximized || false}
-                isMinimized={program.isMinimized || false}
-                zIndex={program.zIndex}
-                position={program.position}
-                size={program.size}
-                props={program.props || {}}
-              />
-            );
-
-          case "system-restore":
-            return (
-              <SystemRestore
-                key={program.id}
-                id={program.id}
-                isActive={program.zIndex === Math.max(...programs.map((p) => p.zIndex))}
-                isMaximized={program.isMaximized || false}
-                isMinimized={program.isMinimized || false}
-                zIndex={program.zIndex}
-                position={program.position}
-                size={program.size}
-              />
-            );
-
-          case "error-dialog":
-            return (
-              <ErrorDialog
-                key={program.id}
-                id={program.id}
-                message={program.props?.message || "An error has occurred."}
-                title={program.props?.title || "Error"}
-                icon={program.props?.icon || ErrorDialog}
-                isActive={program.zIndex === Math.max(...programs.map((p) => p.zIndex))}
-                isMaximized={program.isMaximized || false}
-                isMinimized={program.isMinimized || false}
-                zIndex={program.zIndex}
-              />
-            );
-
-          // Add cases for other program types as they're implemented
-
-          default:
-            return null;
+        if (!ProgramComponent) {
+          console.warn(`No component found for program type: ${program.type}`);
+          // Optionally render a placeholder or error component
+          return null;
         }
+
+        const commonProps = {
+          id: program.id,
+          isActive: program.zIndex === maxZIndex,
+          isMaximized: program.isMaximized || false,
+          isMinimized: program.isMinimized || false,
+          zIndex: program.zIndex,
+          position: program.position,
+          size: program.size,
+          title: program.title,
+          icon: program.icon,
+          props: program.props,
+        };
+
+        // Special handling for ErrorDialog props
+        if (program.type === "error-dialog") {
+          return (
+            <Suspense key={program.id} fallback={<div>Loading...</div>}> {/* Suspense for lazy component */}
+              <ProgramComponent
+                {...commonProps}
+                message={program.props?.message || "An error has occurred."}
+              />
+            </Suspense>
+          );
+        }
+
+        return (
+          <Suspense key={program.id} fallback={<div>Loading...</div>}> {/* Suspense for lazy component */}
+            <ProgramComponent {...commonProps} />
+          </Suspense>
+        );
       })}
     </>
   );

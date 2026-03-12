@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useDesktop } from "@/context/DesktopContext";
-import { useProgramManager } from "@/hooks/useProgramManager";
 import { useEffect, useRef } from "react";
 
 interface TaskbarContextMenuProps {
@@ -17,8 +16,7 @@ interface TaskbarContextMenuProps {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function TaskbarContextMenu({ x, y, isLocked, programs, programType, onToggleLock, onClose }: TaskbarContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
-  const { launchProgram } = useProgramManager();
-  const { closeProgram, minimizeProgram, maximizeProgram, focusProgram } = useDesktop();
+  const { openProgram, closeProgram, minimizeProgram, maximizeProgram, focusProgram, minimizeAllPrograms } = useDesktop();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Inicializar o áudio
@@ -42,7 +40,7 @@ export default function TaskbarContextMenu({ x, y, isLocked, programs, programTy
 
   // Open Taskbar Properties (Display Properties in XP)
   const handleOpenProperties = () => {
-    launchProgram("display-properties");
+    openProgram("display-properties");
     onClose();
   };
 
@@ -72,8 +70,7 @@ export default function TaskbarContextMenu({ x, y, isLocked, programs, programTy
 
   // Handle show desktop
   const handleShowDesktop = () => {
-    // Esta funcionalidade será implementada no futuro
-    // Por enquanto, apenas fecharemos o menu
+    minimizeAllPrograms();
     onClose();
   };
 
@@ -263,7 +260,7 @@ export default function TaskbarContextMenu({ x, y, isLocked, programs, programTy
           <div className="border-t border-gray-300 my-1"></div>
           <button
             className="p-2 text-left hover:bg-blue-100 w-full context-menu-item"
-            onClick={onClose}
+            onClick={() => openProgram("task-manager")}
           >
             Task Manager
           </button>

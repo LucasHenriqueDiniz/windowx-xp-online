@@ -1,8 +1,10 @@
-"use client";
+'use client';
 import { useState, useRef, useEffect, ReactNode } from "react";
 import { useDesktop } from "@/context/DesktopContext";
 import Image from "next/image";
 import { WindowPropertiesProps } from "@/types/window-properties";
+import HeaderButtons from './HeaderButtons';
+import './Window.css';
 
 // Estendendo a interface WindowPropertiesProps para incluir as propriedades adicionais específicas do componente Window
 interface WindowProps extends Omit<WindowPropertiesProps, "props"> {
@@ -51,6 +53,7 @@ export default function Window({
   const [resizeDirection, setResizeDirection] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const windowRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<HTMLDivElement>(null);
 
   // Atualiza a posição da janela se a prop position mudar
   useEffect(() => {
@@ -90,7 +93,7 @@ export default function Window({
 
   // Set up window drag functionality
   const handleTitleMouseDown = (e: React.MouseEvent) => {
-    if (isMaximized) return;
+    if (isMaximized || e.target !== dragRef.current) return;
 
     setIsDragging(true);
     setDragOffset({
@@ -180,123 +183,67 @@ export default function Window({
   }, [isDragging, isResizing, dragOffset, windowPosition, windowSize, id, resizeDirection, moveProgram, resizeProgram, minWidth, minHeight]);
 
   // Double-click on title bar to maximize/restore
-  const handleTitleDoubleClick = () => {
+  const handleTitleDoubleClick = (e: React.MouseEvent) => {
+    if (e.target !== dragRef.current) return;
     handleMaximize();
   };
 
-  // Apply different styles based on window state
-  let windowStyle: React.CSSProperties = {
-    zIndex,
-    display: isMinimized ? "none" : "flex",
-  };
+  const windowClasses = `window ${isActive ? 'focused' : 'unfocused'}`;
 
+  let x, y, width, height;
   if (isMaximized) {
-    windowStyle = {
-      ...windowStyle,
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      transform: "none",
-    };
+      width = window.innerWidth + 6;
+      height = window.innerHeight - 24;
+      x = -3;
+      y = -3;
   } else {
-    windowStyle = {
-      ...windowStyle,
-      top: `${windowPosition.y}px`,
-      left: `${windowPosition.x}px`,
-      width: `${windowSize.width}px`,
-      height: `${windowSize.height}px`,
-    };
+      width = windowSize.width;
+      height = windowSize.height;
+      x = windowPosition.x;
+      y = windowPosition.y;
   }
 
   return (
     <div
       ref={windowRef}
-      className={`absolute flex flex-col shadow-lg overflow-hidden border`}
+      className={windowClasses}
       style={{
-        ...windowStyle,
-        borderColor: isActive ? "#0055EA" : "#a0a0a0",
-        borderWidth: "1px",
-        borderStyle: "solid",
+        transform: `translate(${x}px,${y}px)`,
+        width: width ? `${width}px` : 'auto',
+        height: height ? `${height}px` : 'auto',
+        zIndex,
+        display: isMinimized ? 'none' : 'flex',
       }}
       onMouseDown={handleFocus}
     >
-      {/* Window Title Bar - Usando estilo Windows XP com gradiente */}
-      <div
-        className={`flex items-center px-2 py-1 h-7 select-none ${
-          isActive
-            ? "bg-gradient-to-r from-[#0C59B3] via-[#3984D8] to-[#0C59B3] text-white"
-            : "bg-gradient-to-r from-[#7F7F7F] via-[#B8B8B8] to-[#7F7F7F] text-[#D8E4F8]"
-        }`}
-        onMouseDown={handleTitleMouseDown}
-        onDoubleClick={handleTitleDoubleClick}
-      >
-        <Image
-          width={16}
-          height={16}
-          src={icon}
-          alt="Icon"
-          className="w-4 h-4 mr-1"
-        />
-        <div className="flex-grow text-sm font-semibold truncate">{title}</div>
-        <div className="flex space-x-1">
-          {/* Botão de minimizar - Estilo Windows XP */}
-          {showMinimize && (
-            <button
-              className="w-[21px] h-[21px] flex items-center justify-center rounded-none focus:outline-none"
-              style={{
-                background: isActive ? "linear-gradient(to bottom, #FFFDFD 0%, #EEE9E5 100%)" : "linear-gradient(to bottom, #F5F5F5 0%, #E5E5E5 100%)",
-                boxShadow: "0 0 1px rgba(0,0,0,0.5), inset 1px 1px 0px white, inset -1px -1px 0px #C7C7C7",
-              }}
-              onClick={handleMinimize}
-            >
-              <div className="w-[8px] h-[2px] bg-[#0A246A]"></div>
-            </button>
-          )}
-
-          {/* Botão de maximizar/restaurar - Estilo Windows XP */}
-          {showMaximize && (
-            <button
-              className="w-[21px] h-[21px] flex items-center justify-center rounded-none focus:outline-none"
-              style={{
-                background: isActive ? "linear-gradient(to bottom, #FFFDFD 0%, #EEE9E5 100%)" : "linear-gradient(to bottom, #F5F5F5 0%, #E5E5E5 100%)",
-                boxShadow: "0 0 1px rgba(0,0,0,0.5), inset 1px 1px 0px white, inset -1px -1px 0px #C7C7C7",
-              }}
-              onClick={handleMaximize}
-            >
-              {isMaximized ? (
-                // Ícone de restaurar - Estilo Windows XP
-                <div className="relative w-[10px] h-[10px]">
-                  <div className="absolute w-[6px] h-[6px] right-0 bottom-0 border border-[#0A246A]"></div>
-                  <div className="absolute w-[6px] h-[6px] left-0 top-0 border border-[#0A246A] bg-white"></div>
-                </div>
-              ) : (
-                // Ícone de maximizar - Estilo Windows XP
-                <div className="w-[8px] h-[8px] border border-[#0A246A]"></div>
-              )}
-            </button>
-          )}
-
-          {/* Botão de fechar - Estilo Windows XP */}
-          <button
-            className="w-[21px] h-[21px] flex items-center justify-center rounded-none focus:outline-none"
-            style={{
-              background: "linear-gradient(to bottom, #F5A3A3 0%, #B81B22 60%, #952116 100%)",
-              boxShadow: "0 0 1px rgba(0,0,0,0.5), inset 1px 1px 0px #FCBCBC, inset -1px -1px 0px #800000",
-            }}
-            onClick={handleClose}
-          >
-            {/* X branco - Estilo Windows XP */}
-            <div className="relative w-[10px] h-[10px]">
-              <div className="absolute w-[10px] h-[1px] bg-white transform rotate-45 top-[4.5px]"></div>
-              <div className="absolute w-[10px] h-[1px] bg-white transform -rotate-45 top-[4.5px]"></div>
-            </div>
-          </button>
+        <div className="header-bg" />
+        <header 
+            className="app-header"
+            ref={dragRef}
+            onMouseDown={handleTitleMouseDown}
+            onDoubleClick={handleTitleDoubleClick}
+        >
+            <Image
+                width={15}
+                height={15}
+                src={icon}
+                alt={title}
+                className="app-header-icon"
+                draggable={false}
+            />
+            <div className="app-header-title">{title}</div>
+            <HeaderButtons
+                onMinimize={handleMinimize}
+                onMaximize={handleMaximize}
+                onClose={handleClose}
+                maximized={isMaximized}
+                resizable={resizable}
+                isFocus={isActive}
+            />
+        </header>
+        <div className="app-content">
+            {children}
         </div>
-      </div>
-
-      {/* Frame da janela - Estilo Windows XP */}
-      <div className="flex-grow overflow-auto relative border-t border-[#0055EA] bg-[#ECE9D8]">{children}</div>
 
       {/* Resize Handles (if window is resizable and not maximized) */}
       {resizable && !isMaximized && (

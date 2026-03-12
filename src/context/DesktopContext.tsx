@@ -1,557 +1,320 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
-import { createContext, useContext, useState, useEffect, ReactNode, lazy } from "react";
-import { database, isDatabaseAvailable } from "../../lib/firebase";
-import { ref, onValue, set } from "firebase/database";
-import { DefaultWallpaper } from "../../public/assets/wallpapers";
-import * as Icons from "../../public/assets/icons";
+import {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+  useReducer,
+  useCallback,
+} from "react";
+import { getDatabase, ref, set, onChildAdded, push, serverTimestamp } from "firebase/database";
+import { DesktopState, Program, WindowPosition, WindowSize } from "@/types";
+import { programDefinitions, ProgramId } from "@/types/program-definitions";
+import { config } from "@/config";
+import { useDebouncedCallback } from "use-debounce";
 
-// Define icon metadata structure
-export interface IconMetadata {
-  id: string;
-  type: string;
-}
+// --- REDUCER --- //
+type Action = 
+  | { type: 'SET_STATE', payload: DesktopState }
+  | { type: 'OPEN_PROGRAM', payload: { programId: ProgramId, props?: Record<string, unknown> } }
+  | { type: 'CLOSE_PROGRAM', payload: { id: string } }
+  | { type: 'FOCUS_PROGRAM', payload: { id: string } }
+  | { type: 'UNFOCUS_ALL' }
+  | { type: 'MINIMIZE_PROGRAM', payload: { id: string } }
+  | { type: 'MAXIMIZE_PROGRAM', payload: { id: string, isMaximized: boolean } }
+  | { type: 'MOVE_PROGRAM', payload: { id: string, position: WindowPosition } }
+  | { type: 'RESIZE_PROGRAM', payload: { id: string, size: WindowSize } }
+  | { type: 'MOVE_ICON', payload: { id: string, position: WindowPosition } }
+  | { type: 'MINIMIZE_ALL_PROGRAMS' };
 
-// Define program data structure
-export interface ProgramData {
-  id: string;
-  globalId?: string; // Added for multiplayer functionality
-  type: string;
-  title: string;
-  icon: string;
-  isOpen: boolean;
-  zIndex: number;
-  position?: { x: number; y: number };
-  size?: { width: number; height: number };
-  isMaximized?: boolean;
-  isMinimized?: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  props?: Record<string, any>;
-}
+const desktopReducer = (state: DesktopState, action: Action): DesktopState => {
+  switch (action.type) {
+    case 'SET_STATE':
+      return action.payload;
+    case 'OPEN_PROGRAM': {
+        const definition = programDefinitions[action.payload.programId];
+        if (!definition) return state;
 
-// Define the desktop context interface
-interface DesktopContextType {
-  iconIds: string[];
-  iconArrangement: "auto" | "normal";
-  iconSize: "small" | "medium" | "large";
-  wallpaper: string | null; // Modificado para aceitar null
-  wallpaperPosition: "center" | "tile" | "stretch"; // Nova propriedade para a posição do wallpaper
-  backgroundColor: string; // Nova propriedade para cor de fundo
-  programs: ProgramData[];
-  setIconSize: (size: "small" | "medium" | "large") => void;
-  setWallpaper: (wallpaperPath: string | null) => void; // Atualizado para aceitar null
-  setWallpaperPosition: (position: "center" | "tile" | "stretch") => void; // Nova função
-  setBackgroundColor: (color: string) => void; // Nova função para definir cor de fundo
-  moveIcon: (iconId: string, newPosition: number) => void;
-  setIconArrangement: (arrangement: "auto" | "normal") => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  openProgram: (programType: string, props?: Record<string, any>) => string | null;
-  closeProgram: (programId: string, persistProps?: boolean) => void;
-  showErrorWindow: (message: string) => void;
-  focusProgram: (programId: string) => void;
-  minimizeProgram: (programId: string) => void;
-  minimizeAllPrograms: () => void; // Added for "Show Desktop" functionality
-  maximizeProgram: (programId: string, isMaximized: boolean) => void;
-  moveProgram: (programId: string, position: { x: number; y: number }) => void;
-  resizeProgram: (programId: string, size: { width: number; height: number }) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  updateProgramProps: (programId: string, props: Record<string, any>) => void;
-}
+        const newProgram: Program = {
+            id: `${action.payload.programId}-${Date.now()}`,
+            type: action.payload.programId,
+            title: definition.name,
+            icon: definition.icon, 
+            position: { x: 100, y: 100 },
+            size: definition.defaultSize || { width: 640, height: 480 },
+            zIndex: state.nextZIndex, 
+            isMinimized: false,
+            isMaximized: false,
+            props: { ...definition.defaultProps, ...action.payload.props },
+        };
 
-// Create the context with a default value
-const DesktopContext = createContext<DesktopContextType | undefined>(undefined);
-// Lista padrão de ícones baseada no program-library.ts
-export const defaultIcons = [
-  "my-computer",
-  "my-documents",
-  "recycle-bin",
-  "internet-explorer",
-  "paint",
-  "calculator",
-  "notepad",
-  "system-restore",
-  "my-network",
-  "control-panel",
-];
-
-// Lazy load program components
-const Calculator = lazy(() => import("@/components/Programs/Calculator"));
-const CommandPrompt = lazy(() => import("@/components/Programs/ErrorDialog"));
-const InternetExplorer = lazy(() => import("@/components/Programs/ErrorDialog"));
-const Minesweeper = lazy(() => import("@/components/Programs/ErrorDialog"));
-const Notepad = lazy(() => import("@/components/Programs/Notepad"));
-const Paint = lazy(() => import("@/components/Programs/Paint"));
-const Solitaire = lazy(() => import("@/components/Programs/ErrorDialog"));
-const SystemRestore = lazy(() => import("@/components/Programs/SystemRestore"));
-const WindowsExplorer = lazy(() => import("@/components/Programs/ErrorDialog"));
-
-// Map of program IDs to components
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const programComponentMap: Record<string, React.ComponentType<any>> = {
-  paint: Paint,
-  calculator: Calculator,
-  notepad: Notepad,
-  explorer: WindowsExplorer,
-  browser: InternetExplorer,
-  "internet-explorer": InternetExplorer,
-  cmd: CommandPrompt,
-  minesweeper: Minesweeper,
-  solitaire: Solitaire,
-  "system-restore": SystemRestore,
+        return {
+            ...state,
+            programs: [...state.programs, newProgram],
+            focused_program_id: newProgram.id,
+            nextZIndex: state.nextZIndex + 1,
+        };
+    }
+    case 'CLOSE_PROGRAM':
+        return {
+            ...state,
+            programs: state.programs.filter((p) => p.id !== action.payload.id),
+            focused_program_id: undefined,
+        };
+    case 'FOCUS_PROGRAM':
+        if (state.focused_program_id === action.payload.id) return state;
+        return {
+            ...state,
+            programs: state.programs.map((p) => 
+                p.id === action.payload.id 
+                    ? { ...p, zIndex: state.nextZIndex, isMinimized: false } 
+                    : p
+            ),
+            focused_program_id: action.payload.id,
+            nextZIndex: state.nextZIndex + 1,
+        };
+    case 'UNFOCUS_ALL':
+        return { ...state, focused_program_id: undefined };
+    case 'MINIMIZE_PROGRAM':
+        return {
+            ...state,
+            programs: state.programs.map((p) => 
+                p.id === action.payload.id ? { ...p, isMinimized: true } : p
+            ),
+            focused_program_id: undefined,
+        };
+    case 'MAXIMIZE_PROGRAM':
+        return {
+            ...state,
+            programs: state.programs.map((p) => 
+                p.id === action.payload.id ? { ...p, isMaximized: !action.payload.isMaximized, isMinimized: false } : p
+            ),
+            focused_program_id: action.payload.id,
+            nextZIndex: state.nextZIndex + 1,
+        };
+    case 'MOVE_PROGRAM':
+        return {
+            ...state,
+            programs: state.programs.map((p) => 
+                p.id === action.payload.id ? { ...p, position: action.payload.position } : p
+            ),
+        };
+    case 'RESIZE_PROGRAM':
+        return {
+            ...state,
+            programs: state.programs.map((p) => 
+                p.id === action.payload.id ? { ...p, size: action.payload.size } : p
+            ),
+        };
+    case 'MOVE_ICON':
+        return {
+            ...state,
+            icons: state.icons.map((icon) => 
+                icon.id === action.payload.id ? { ...icon, position: action.payload.position } : icon
+            ),
+        };
+    case 'MINIMIZE_ALL_PROGRAMS':
+        return {
+            ...state,
+            programs: state.programs.map((p) => ({ ...p, isMinimized: true })),
+            focused_program_id: undefined,
+        };
+    default:
+        return state;
+  }
 };
 
-// Provider component
-export function DesktopProvider({ children }: { children: ReactNode }) {
-  // More optimized structure - just store IDs
-  const [iconIds, setIconIds] = useState<string[]>([]);
-  const [iconSize, setIconSize] = useState<"small" | "medium" | "large">("medium");
-  const [wallpaper, setWallpaperState] = useState<string | null>(DefaultWallpaper.src);
-  const [wallpaperPosition, setWallpaperPositionState] = useState<"center" | "tile" | "stretch">("center");
-  const [backgroundColor, setBackgroundColorState] = useState<string>("#008080"); // Cor padrão do Windows XP (verde azulado)
-  const [iconArrangement, setIconArrangementState] = useState<"auto" | "normal">("auto");
-  const [programs, setPrograms] = useState<ProgramData[]>([]);
-  const [nextZIndex, setNextZIndex] = useState(100);
-  const [dbAvailable, setDbAvailable] = useState(false);
+// --- CONTEXT --- //
+const defaultInitialState: DesktopState = {
+  icons: [
+    { id: "paint", position: { x: 20, y: 20 } },
+    { id: "notepad", position: { x: 20, y: 120 } },
+  ],
+  programs: [],
+  nextZIndex: 10,
+  focused_program_id: undefined,
+};
 
-  // Check database availability first before attempting to connect
-  useEffect(() => {
-    // Only proceed if the database is available
-    if (isDatabaseAvailable()) {
-      setDbAvailable(true);
-    } else {
-      console.error("Database is not available. All desktop operations will be local only.");
+interface DesktopContextType {
+  desktopState: DesktopState;
+  setDesktopState: (state: DesktopState) => void; 
+  openProgram: (programId: ProgramId, props?: Record<string, unknown>) => void;
+  closeProgram: (id: string) => void;
+  focusProgram: (id: string) => void;
+  unFocus: () => void;
+  minimizeProgram: (id: string) => void;
+  maximizeProgram: (id: string, isMaximized: boolean) => void;
+  moveProgram: (id: string, position: WindowPosition) => void;
+  resizeProgram: (id: string, size: WindowSize) => void;
+  moveIcon: (id: string, position: WindowPosition) => void;
+  minimizeAllPrograms: () => void;
+}
+
+const DesktopContext = createContext<DesktopContextType | undefined>(undefined);
+
+export function DesktopProvider({ children }: { children: ReactNode }) {
+  const [desktopState, dispatch] = useReducer(desktopReducer, defaultInitialState);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  const dispatchEvent = useCallback((action: Omit<Action, 'type'> & { type: string }) => {
+    if (config.APP_MODE === 'online' && config.isFirebaseConfigured) {
+      const db = getDatabase();
+      const eventsRef = ref(db, 'desktop-events');
+      push(eventsRef, { ...action, timestamp: serverTimestamp() });
     }
   }, []);
 
-  // Load desktop settings from Firebase only if DB is available
+  // --- STATE PERSISTENCE & MIGRATION --- //
+
+  const saveToLocalStorage = useDebouncedCallback((state: DesktopState) => {
+    localStorage.setItem("desktopState", JSON.stringify(state));
+  }, 300);
+
   useEffect(() => {
-    if (!dbAvailable) return;
+    if (config.APP_MODE === 'local') {
+      const savedStateJSON = localStorage.getItem("desktopState");
+      let stateToLoad = defaultInitialState;
 
-    const iconsRef = ref(database!, "desktop/iconIds");
-    const sizeRef = ref(database!, "desktop/iconSize");
-    const wallpaperRef = ref(database!, "desktop/wallpaper");
-    const backgroundColorRef = ref(database!, "desktop/backgroundColor");
-    const arrangementRef = ref(database!, "desktop/iconArrangement");
-    const programsRef = ref(database!, "desktop/programs");
+      if (savedStateJSON) {
+        const savedState = JSON.parse(savedStateJSON) as DesktopState;
 
-    // Listen for icons
-    const iconsUnsubscribe = onValue(iconsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setIconIds(data);
-      } else {
-        // Set default icons if none exist
-        set(iconsRef, defaultIcons);
-        setIconIds(defaultIcons);
-      }
-    });
-
-    // Listen for icon size
-    const sizeUnsubscribe = onValue(sizeRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setIconSize(data);
-      } else {
-        // Initialize with default size if not exists
-        set(sizeRef, "medium");
-      }
-    });
-
-    // Listen for wallpaper
-    const wallpaperUnsubscribe = onValue(wallpaperRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data !== undefined && data !== null) {
-        setWallpaperState(data);
-      } else {
-        // Initialize with default wallpaper if not exists
-        set(wallpaperRef, DefaultWallpaper.src);
-      }
-    });
-
-    // Listen for background color
-    const backgroundColorUnsubscribe = onValue(backgroundColorRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setBackgroundColorState(data);
-      } else {
-        // Initialize with default background color if not exists
-        set(backgroundColorRef, "#008080");
-      }
-    });
-
-    // Listen for icon arrangement
-    const arrangementUnsubscribe = onValue(arrangementRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setIconArrangementState(data);
-      } else {
-        // Initialize with default arrangement if not exists
-        set(arrangementRef, "auto");
-      }
-    });
-
-    // Listen for open programs
-    const programsUnsubscribe = onValue(programsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setPrograms(data);
-      }
-    });
-
-    // Cleanup
-    return () => {
-      iconsUnsubscribe();
-      sizeUnsubscribe();
-      wallpaperUnsubscribe();
-      backgroundColorUnsubscribe();
-      arrangementUnsubscribe();
-      programsUnsubscribe();
-    };
-  }, [dbAvailable]);
-
-  // Helper function to update Firebase if available
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updateFirebase = (path: string, value: any) => {
-    if (dbAvailable) {
-      set(ref(database!, path), value);
-    }
-  };
-
-  // Move an icon to a new position
-  const moveIcon = (iconId: string, newPosition: number) => {
-    if (iconArrangement === "auto") return; // Can't move icons in auto arrangement
-
-    const newOrder = [...iconIds];
-    const currentIndex = newOrder.indexOf(iconId);
-
-    if (currentIndex !== -1) {
-      // Remove from current position
-      newOrder.splice(currentIndex, 1);
-      // Insert at new position
-      newOrder.splice(newPosition, 0, iconId);
-
-      // Update Firebase if available
-      updateFirebase("desktop/iconIds", newOrder);
-      setIconIds(newOrder);
-    }
-  };
-
-  // Update icon size in Firebase
-  const handleSetIconSize = (size: "small" | "medium" | "large") => {
-    updateFirebase("desktop/iconSize", size);
-    setIconSize(size);
-  };
-
-  // Update wallpaper in Firebase
-  const handleSetWallpaper = (wallpaperPath: string | null) => {
-    updateFirebase("desktop/wallpaper", wallpaperPath);
-    setWallpaperState(wallpaperPath);
-  };
-
-  // Update wallpaper position in Firebase
-  const handleSetWallpaperPosition = (position: "center" | "tile" | "stretch") => {
-    updateFirebase("desktop/wallpaperPosition", position);
-    setWallpaperPositionState(position);
-  };
-
-  // Update background color in Firebase
-  const handleSetBackgroundColor = (color: string) => {
-    updateFirebase("desktop/backgroundColor", color);
-    setBackgroundColorState(color);
-  };
-
-  // Update icon arrangement in Firebase
-  const handleSetIconArrangement = (arrangement: "auto" | "normal") => {
-    updateFirebase("desktop/iconArrangement", arrangement);
-    setIconArrangementState(arrangement);
-  };
-
-  // Program management functions
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const openProgram = (programType: string, props?: Record<string, any>) => {
-    // Limit to 16 windows
-    const nonErrorWindows = programs.filter((p) => p.type !== "error-dialog");
-    if (nonErrorWindows.length >= 16 && programType !== "error-dialog") {
-      showErrorWindow("You have reached the maximum limit of 16 open windows. Please close some windows before opening a new one.");
-      return null;
-    }
-
-    // Check if the program type is valid
-    const validProgramTypes = [
-      // "explorer",
-      "browser",
-      "notepad",
-      "calculator",
-      // "control-panel",
-      "display-properties",
-      "error-dialog",
-      "system-restore",
-      "paint",
-    ];
-
-    if (!validProgramTypes.includes(programType)) {
-      showErrorWindow(`Cannot open "${programType}". The specified program is not found or not supported.`);
-      return null;
-    }
-
-    const programId = `${programType}-${Date.now()}`;
-
-    // Use provided globalId from props if available (for multiplayer sync)
-    const globalId = props?.globalId || programId;
-
-    // Get program title and icon based on program type
-    let title = "Program";
-    let icon = Icons.Folder.src; // Default icon
-
-    switch (programType) {
-      case "explorer":
-        title =
-          props?.iconId === "my-computer"
-            ? "My Computer"
-            : props?.iconId === "my-documents"
-            ? "My Documents"
-            : props?.iconId === "my-network"
-            ? "My Network Places"
-            : "Explorer";
-        icon = `/assets/icons/${title}.png`;
-        break;
-      case "browser":
-        title = "Internet Explorer";
-        icon = Icons.InternetExplorer.src;
-        break;
-      case "notepad":
-        title = "Notepad";
-        icon = Icons.Notepad.src;
-        break;
-      case "calculator":
-        title = "Calculator";
-        icon = Icons.Calculator.src;
-        break;
-      case "control-panel":
-        title = "Control Panel";
-        icon = Icons.ControlPanel.src;
-        break;
-      case "display-properties":
-        title = "Display Properties";
-        icon = Icons.Display.src;
-        break;
-      case "error-dialog":
-        title = "System Error";
-        icon = Icons.ErrorDialog.src;
-        break;
-      case "system-restore":
-        title = "System Restore";
-        icon = Icons.SystemRestore.src;
-        break;
-      case "paint":
-        title = "Paint";
-        icon = Icons.Paint.src;
-        break;
-    }
-
-    const newProgram: ProgramData = {
-      id: programId,
-      globalId, // Store the global ID for multiplayer sync
-      type: programType,
-      title,
-      icon,
-      isOpen: true,
-      zIndex: nextZIndex,
-      position: { x: 50 + programs.length * 20, y: 50 + programs.length * 20 },
-      size: { width: 640, height: 480 },
-      isMaximized: false,
-      isMinimized: false,
-      props,
-    };
-
-    const updatedPrograms = [...programs, newProgram];
-    updateFirebase("desktop/programs", updatedPrograms);
-    setPrograms(updatedPrograms);
-    setNextZIndex(nextZIndex + 1);
-
-    return programId;
-  };
-
-  const closeProgram = (programId: string, persistProps: boolean = false) => {
-    const updatedPrograms = programs.filter((program) => program.id !== programId);
-
-    // If not persisting props and the program is being reopened, reset its props
-    if (!persistProps) {
-      const programToClose = programs.find((program) => program.id === programId);
-      if (programToClose) {
-        // Save the program type for potential reopening
-        const programType = programToClose.type;
-        // const globalId = programToClose.globalId;
-
-        // Get the remaining programs of this type
-        const remainingPrograms = programs.filter((p) => p.type === programType && p.id !== programId);
-
-        // Update those programs to clear their props
-        // (except for global ID and essential props needed for the program to function)
-        remainingPrograms.forEach((p) => {
-          const essentialProps = { globalId: p.props?.globalId };
-          const updatedProgram = { ...p, props: essentialProps };
-          const index = updatedPrograms.findIndex((up) => up.id === p.id);
-          if (index !== -1) {
-            updatedPrograms[index] = updatedProgram;
+        // **MIGRATION LOGIC**
+        // Update icons for existing programs and desktop icons if they are outdated
+        savedState.programs.forEach(program => {
+          const definition = programDefinitions[program.type as ProgramId];
+          if (definition && program.icon !== definition.icon) {
+            program.icon = definition.icon;
           }
         });
+        savedState.icons.forEach(icon => {
+          const definition = programDefinitions[icon.id as ProgramId];
+          if (definition && icon.icon !== definition.desktopIcon) {
+            icon.icon = definition.desktopIcon;
+          }
+        });
+        stateToLoad = savedState;
       }
+      
+      dispatch({ type: 'SET_STATE', payload: stateToLoad });
+      setIsInitialized(true);
     }
+  }, []);
 
-    updateFirebase("desktop/programs", updatedPrograms);
-    setPrograms(updatedPrograms);
-  };
+  useEffect(() => {
+    if (isInitialized && config.APP_MODE === 'local') {
+      saveToLocalStorage(desktopState);
+    }
+  }, [desktopState, saveToLocalStorage, isInitialized]);
 
-  // Add error window function
-  const showErrorWindow = (message: string) => {
-    // Don't create duplicate error windows if one is already open
-    const existingErrorWindow = programs.find((p) => p.type === "error-dialog");
-    if (existingErrorWindow) {
-      // Update the existing error message
-      const updatedPrograms = programs.map((p) => {
-        if (p.id === existingErrorWindow.id) {
-          return { ...p, props: { ...p.props, message } };
-        }
-        return p;
+  useEffect(() => {
+    if (config.APP_MODE === 'online' && config.isFirebaseConfigured && isInitialized) {
+      const db = getDatabase();
+      const eventsRef = ref(db, 'desktop-events');
+      
+      const unsubscribe = onChildAdded(eventsRef, (snapshot) => {
+        const event = snapshot.val() as Action;
+        dispatch(event);
       });
-      updateFirebase("desktop/programs", updatedPrograms);
-      setPrograms(updatedPrograms);
-      focusProgram(existingErrorWindow.id);
-      return;
+
+      return () => unsubscribe();
     }
+  }, [isInitialized]);
 
-    // Create a new error window
-    openProgram("error-dialog", { message, persistProps: true });
+  // --- ACTION FUNCTIONS --- //
+
+  const setDesktopStateForInitializer = useCallback((newState: DesktopState) => {
+    dispatch({ type: 'SET_STATE', payload: newState });
+    setIsInitialized(true);
+  }, []);
+
+  const openProgram = useCallback((programId: ProgramId, props: Record<string, unknown> = {}) => {
+    const action: Action = { type: 'OPEN_PROGRAM', payload: { programId, props } };
+    config.APP_MODE === 'online' ? dispatchEvent(action) : dispatch(action);
+  }, [dispatchEvent]);
+
+  const closeProgram = useCallback((id: string) => {
+    const action: Action = { type: 'CLOSE_PROGRAM', payload: { id } };
+    config.APP_MODE === 'online' ? dispatchEvent(action) : dispatch(action);
+  }, [dispatchEvent]);
+  
+  const focusProgram = useCallback((id: string) => {
+    const action: Action = { type: 'FOCUS_PROGRAM', payload: { id } };
+    dispatch(action); // Focus is local first, then (optionally) synced
+  }, []);
+
+  const unFocus = useCallback(() => {
+    const action: Action = { type: 'UNFOCUS_ALL' };
+    dispatch(action);
+  }, []);
+
+  const minimizeProgram = useCallback((id: string) => {
+    const action: Action = { type: 'MINIMIZE_PROGRAM', payload: { id } };
+    config.APP_MODE === 'online' ? dispatchEvent(action) : dispatch(action);
+  }, [dispatchEvent]);
+
+  const maximizeProgram = useCallback((id: string, isMaximized: boolean) => {
+    const action: Action = { type: 'MAXIMIZE_PROGRAM', payload: { id, isMaximized } };
+    config.APP_MODE === 'online' ? dispatchEvent(action) : dispatch(action);
+  }, [dispatchEvent]);
+
+  const debouncedMove = useDebouncedCallback((id: string, position: WindowPosition) => {
+      const action: Action = { type: 'MOVE_PROGRAM', payload: { id, position } };
+      config.APP_MODE === 'online' ? dispatchEvent(action) : dispatch(action);
+  }, 50)
+
+  const moveProgram = (id: string, position: WindowPosition) => {
+      const localAction: Action = { type: 'MOVE_PROGRAM', payload: { id, position } };
+      dispatch(localAction)
+      debouncedMove(id, position)
+  }
+
+  const resizeProgram = useCallback((id: string, size: WindowSize) => {
+    const action: Action = { type: 'RESIZE_PROGRAM', payload: { id, size } };
+    config.APP_MODE === 'online' ? dispatchEvent(action) : dispatch(action);
+  }, [dispatchEvent]);
+
+  const moveIcon = useCallback((id: string, position: WindowPosition) => {
+    const action: Action = { type: 'MOVE_ICON', payload: { id, position } };
+    if (config.APP_MODE === 'online') {
+       const db = getDatabase();
+       const newState = desktopReducer(desktopState, action); 
+       dispatch(action); 
+       const dbRef = ref(db, "desktop/icons");
+       set(dbRef, newState.icons); 
+    } else {
+      dispatch(action);
+    }
+  }, [desktopState, dispatchEvent]);
+
+ const minimizeAllPrograms = useCallback(() => {
+    const action: Action = { type: 'MINIMIZE_ALL_PROGRAMS' };
+    config.APP_MODE === 'online' ? dispatchEvent(action) : dispatch(action);
+  }, [dispatchEvent]);
+
+  const value = {
+    desktopState,
+    setDesktopState: setDesktopStateForInitializer,
+    openProgram,
+    closeProgram,
+    focusProgram,
+    unFocus,
+    minimizeProgram,
+    maximizeProgram,
+    moveProgram,
+    resizeProgram,
+    moveIcon,
+    minimizeAllPrograms,
   };
 
-  const focusProgram = (programId: string) => {
-    const updatedPrograms = programs.map((program) => {
-      if (program.id === programId) {
-        return { ...program, zIndex: nextZIndex, isMinimized: false };
-      }
-      return program;
-    });
-
-    updateFirebase("desktop/programs", updatedPrograms);
-    setPrograms(updatedPrograms);
-    setNextZIndex(nextZIndex + 1);
-  };
-
-  const minimizeProgram = (programId: string) => {
-    const updatedPrograms = programs.map((program) => {
-      if (program.id === programId) {
-        return { ...program, isMinimized: !program.isMinimized };
-      }
-      return program;
-    });
-
-    updateFirebase("desktop/programs", updatedPrograms);
-    setPrograms(updatedPrograms);
-  };
-
-  const minimizeAllPrograms = () => {
-    const updatedPrograms = programs.map((program) => {
-      return { ...program, isMinimized: true };
-    });
-
-    updateFirebase("desktop/programs", updatedPrograms);
-    setPrograms(updatedPrograms);
-  };
-
-  const maximizeProgram = (programId: string, isMaximized: boolean) => {
-    const updatedPrograms = programs.map((program) => {
-      if (program.id === programId) {
-        return { ...program, isMaximized };
-      }
-      return program;
-    });
-
-    updateFirebase("desktop/programs", updatedPrograms);
-    setPrograms(updatedPrograms);
-  };
-
-  const moveProgram = (programId: string, position: { x: number; y: number }) => {
-    const updatedPrograms = programs.map((program) => {
-      if (program.id === programId) {
-        return { ...program, position };
-      }
-      return program;
-    });
-
-    updateFirebase("desktop/programs", updatedPrograms);
-    setPrograms(updatedPrograms);
-  };
-
-  const resizeProgram = (programId: string, size: { width: number; height: number }) => {
-    const updatedPrograms = programs.map((program) => {
-      if (program.id === programId) {
-        return { ...program, size };
-      }
-      return program;
-    });
-
-    updateFirebase("desktop/programs", updatedPrograms);
-    setPrograms(updatedPrograms);
-  };
-
-  // Update program-specific properties (for synchronizing states like previews)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updateProgramProps = (programId: string, newProps: Record<string, any>) => {
-    const updatedPrograms = programs.map((program) => {
-      if (program.id === programId) {
-        return {
-          ...program,
-          props: {
-            ...program.props,
-            ...newProps,
-          },
-        };
-      }
-      return program;
-    });
-
-    updateFirebase("desktop/programs", updatedPrograms);
-    setPrograms(updatedPrograms);
-  };
-
-  return (
-    <DesktopContext.Provider
-      value={{
-        iconIds,
-        iconSize,
-        wallpaper,
-        wallpaperPosition,
-        backgroundColor,
-        iconArrangement,
-        programs,
-        setIconSize: handleSetIconSize,
-        setWallpaper: handleSetWallpaper,
-        setWallpaperPosition: handleSetWallpaperPosition,
-        setBackgroundColor: handleSetBackgroundColor,
-        moveIcon,
-        setIconArrangement: handleSetIconArrangement,
-        openProgram,
-        closeProgram,
-        showErrorWindow,
-        focusProgram,
-        minimizeProgram,
-        minimizeAllPrograms,
-        maximizeProgram,
-        moveProgram,
-        resizeProgram,
-        updateProgramProps,
-      }}
-    >
-      {children}
-    </DesktopContext.Provider>
-  );
+  return <DesktopContext.Provider value={value}>{children}</DesktopContext.Provider>;
 }
 
-// Hook to use the desktop context
-export function useDesktop() {
+export const useDesktop = (): DesktopContextType => {
   const context = useContext(DesktopContext);
   if (context === undefined) {
     throw new Error("useDesktop must be used within a DesktopProvider");
   }
   return context;
-}
+};

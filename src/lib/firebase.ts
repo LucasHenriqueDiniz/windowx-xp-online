@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { initializeApp, getApps } from "firebase/app";
+import { initializeApp, getApps, FirebaseApp } from "firebase/app";
 import { getDatabase, Database } from "firebase/database";
 
 // Define Firebase configuration interface with required fields
@@ -25,7 +25,7 @@ const defaultConfig: FirebaseConfig = {
 };
 
 // Initialize Firebase only on the client side or if not already initialized
-let app;
+let app: FirebaseApp | undefined;
 let database: Database | null = null;
 let initializationError: string | null = null;
 
@@ -79,4 +79,4 @@ const isDatabaseAvailable = () => database !== null;
 // Function to get the initialization error
 const getInitializationError = () => initializationError;
 
-export { database, isDatabaseAvailable, getInitializationError };
+export { app, database, isDatabaseAvailable, getInitializationError };

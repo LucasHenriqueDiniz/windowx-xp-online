@@ -1,6 +1,6 @@
 "use client";
+import { useDesktop } from "@/context/DesktopContext"; // Import useDesktop
 import { useStartMenu } from "@/context/StartMenuContext";
-import { useProgramManager } from "@/hooks/useProgramManager";
 import { useEffect, useRef, useState } from "react";
 import { uiSounds } from "../../../public/assets/audio";
 import { LogOff, ShutDown, Users } from "../../../public/assets/icons";
@@ -16,7 +16,7 @@ interface StartMenuProps {
 export default function StartMenu({ isOpen, onClose }: StartMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const { pinnedPrograms, recentPrograms, getProgramInfo, addToPinned, removeFromPinned, addToRecent } = useStartMenu();
-  const { launchProgram } = useProgramManager();
+  const { openProgram } = useDesktop(); // Use openProgram from DesktopContext
   const [allProgramsOpen, setAllProgramsOpen] = useState(false);
   const [allProgramsPosition, setAllProgramsPosition] = useState({ top: 0, left: 0 });
   const [contextMenu, setContextMenu] = useState<{
@@ -74,7 +74,7 @@ export default function StartMenu({ isOpen, onClose }: StartMenuProps) {
   const handleProgramLaunch = (programId: string) => {
     const program = getProgramInfo(programId);
     if (program) {
-      launchProgram(program.program, { programId });
+      openProgram(program.program, { programId }); // Replaced launchProgram
       addToRecent(programId);
       onClose(); // Close menu after launching
       setAllProgramsOpen(false);
@@ -347,8 +347,8 @@ export default function StartMenu({ isOpen, onClose }: StartMenuProps) {
           onProperties={() => {
             // Handle properties (would typically show a properties dialog)
             setContextMenu((prev) => ({ ...prev, visible: false }));
-            // Could launch a properties program with the context program as a parameter
-            launchProgram("properties", { targetId: contextMenu.programId });
+            // Replaced launchProgram with openProgram
+            openProgram("properties", { targetId: contextMenu.programId });
           }}
           onClose={() => setContextMenu((prev) => ({ ...prev, visible: false }))}
         />

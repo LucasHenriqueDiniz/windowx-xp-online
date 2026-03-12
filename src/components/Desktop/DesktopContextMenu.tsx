@@ -1,6 +1,5 @@
 "use client";
 import { useDesktop } from "@/context/DesktopContext";
-import { useProgramManager } from "@/hooks/useProgramManager";
 import { useEffect, useRef } from "react";
 
 interface DesktopContextMenuProps {
@@ -11,8 +10,8 @@ interface DesktopContextMenuProps {
 
 export default function DesktopContextMenu({ x, y, onClose }: DesktopContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
-  const { setIconSize, iconSize, setIconArrangement, iconArrangement } = useDesktop();
-  const { launchProgram } = useProgramManager();
+  // Get openProgram from useDesktop and remove useProgramManager
+  const { setIconSize, iconSize, setIconArrangement, iconArrangement, openProgram } = useDesktop();
 
   // Close the menu when clicking outside
   useEffect(() => {
@@ -38,8 +37,9 @@ export default function DesktopContextMenu({ x, y, onClose }: DesktopContextMenu
     onClose();
   };
 
+  // Use openProgram from useDesktop context
   const handleOpenDisplayProperties = () => {
-    launchProgram("display-properties");
+    openProgram("display-properties");
     onClose();
   };
 

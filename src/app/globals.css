@@ -1,3 +1,4 @@
+@import url(https://fonts.googleapis.com/earlyaccess/notosanstc.css);
 @import "tailwindcss";
 
 :root {
@@ -32,6 +33,21 @@
   --font-mono: var(--font-geist-mono);
 }
 
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 14px;
+}
+
+*,
+*:before,
+*:after,
+*:placeholder-shown {
+  font-family: inherit;
+}
+
+
 @font-face {
   font-family: "Tahoma";
   src: url("/fonts/tahoma.ttf") format("truetype");
@@ -42,19 +58,11 @@
 
 @font-face {
   font-family: "Tahoma";
-  src: url("/fonts/tahomabd.ttf") format("truetype");
+  src: url("/fonts/tahomabd.ttf") format("truetype
+");
   font-weight: bold;
   font-style: normal;
   font-display: swap;
-}
-
-:root {
-  --font-windows-xp: Tahoma, "Microsoft Sans Serif", "MS Sans Serif", sans-serif !important;
-}
-
-body {
-  font-family: var(--font-windows-xp) !important;
-  font-size: 11px;
 }
 
 /* Windows XP Scrollbars */
@@ -205,7 +213,7 @@ body {
 }
 
 .font-xp {
-  font-family: var(--font-windows-xp);
+  font-family: 'Noto Sans TC', sans-serif;
 }
 
 /* Desktop icon selection styles */
@@ -272,7 +280,7 @@ body {
   background: linear-gradient(180deg, #ffffff 0%, #e1e1e1 50%, #cfcfcf 50%, #d6d6d6 100%);
   color: #000000;
   padding: 2px 12px;
-  font-family: var(--font-windows-xp);
+  font-family: 'Noto Sans TC', sans-serif;
   font-size: 11px;
   box-shadow: 1px 1px 0px rgba(255, 255, 255, 0.7) inset, -1px -1px 0px rgba(0, 0, 0, 0.1) inset;
 }
@@ -298,7 +306,7 @@ body {
   box-shadow: inset 1px 1px 0 white, inset -1px -1px 0 #bdbcbc;
   color: #000000;
   cursor: pointer;
-  font-family: var(--font-windows-xp);
+  font-family: 'Noto Sans TC', sans-serif;
   font-size: 11px;
   margin: 0 2px;
   padding: 2px 10px;
@@ -339,7 +347,7 @@ input[type="password"] {
   border: 1px solid var(--xp-button-shadow);
   border-radius: 0;
   background-color: white;
-  font-family: var(--font-windows-xp);
+  font-family: 'Noto Sans TC', sans-serif;
   font-size: 11px;
   padding: 2px 4px;
   box-shadow: inset 1px 1px 1px rgba(0, 0, 0, 0.1);
@@ -362,7 +370,7 @@ select {
   background: white;
   border: 1px solid #7f9db9;
   color: black;
-  font-family: var(--font-windows-xp);
+  font-family: 'Noto Sans TC', sans-serif;
   font-size: 11px;
   padding: 2px 4px;
   appearance: none;
@@ -391,7 +399,7 @@ textarea {
   background-color: white;
   border: 1px solid #7f9db9;
   color: black;
-  font-family: var(--font-windows-xp);
+  font-family: 'Noto Sans TC', sans-serif;
   font-size: 11px;
   padding: 2px 4px;
   margin: 2px 0;
